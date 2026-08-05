@@ -14,7 +14,7 @@
 <style>
   :root{
     --green:#43594B; --green-soft:#5c7565; --bg:#F2F1F0; --card:#ffffff;
-    --line:#e2e0dd; --ink:#20241f; --muted:#7c827a; --accent:#43594B;
+    --line:#e2e0dd; --ink:#20241f; --muted:#7c827a;
     --ok:#3a7d44; --ok-bg:#e7f2e8;
   }
   *{box-sizing:border-box}
@@ -26,12 +26,12 @@
     padding-bottom:env(safe-area-inset-bottom);
   }
   header{
-    background:var(--green); color:#fff; padding:14px 16px calc(14px);
+    background:var(--green); color:#fff; padding:14px 16px;
     padding-top:calc(14px + env(safe-area-inset-top));
     position:sticky; top:0; z-index:30;
   }
   header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
-  header .sub{font-size:12px;opacity:.8;margin-top:2px}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px}
   .top-actions{display:flex;gap:8px;margin-top:10px}
   .top-actions button{
     flex:1;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);
@@ -48,8 +48,8 @@
     padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600;flex:0 0 auto;
   }
   .tab.active{background:var(--green);color:#fff;border-color:var(--green)}
-  .tab-journal{border-style:dashed}
-  .tab-journal.active{border-style:solid}
+  .tab-extra{border-style:dashed}
+  .tab-extra.active{border-style:solid}
   main{padding:12px 12px 40px}
   .warm{
     background:#fff7e8;border:1px solid #f0dcae;border-radius:12px;padding:10px 12px;
@@ -59,7 +59,6 @@
     background:var(--card);border:1px solid var(--line);border-radius:14px;
     padding:12px;margin-bottom:12px;
   }
-  .card.done{border-color:#bcd9c1;background:#fbfefb}
   .ex-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .ex-name{font-size:16px;font-weight:700;line-height:1.2}
   .ex-target{font-size:12px;color:var(--muted);margin-top:3px}
@@ -73,26 +72,30 @@
     background:#f6f5f3;border-radius:8px;padding:7px 9px;
   }
   .last b{color:var(--ink)}
-  .sets{display:flex;flex-direction:column;gap:7px;margin-top:6px}
-  .setrow{display:flex;align-items:center;gap:8px}
-  .setrow .n{width:20px;font-size:12px;color:var(--muted);font-weight:700;text-align:center;flex:0 0 auto}
-  .field{flex:1;display:flex;flex-direction:column}
+  .unit-sel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;color:var(--ink);font-weight:600}
+  .sets{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+  .setrow{display:flex;align-items:center;gap:7px;padding:4px;border-radius:10px}
+  .setrow.done{background:var(--ok-bg)}
+  .setrow .n{width:18px;font-size:12px;color:var(--muted);font-weight:700;text-align:center;flex:0 0 auto}
+  .field{flex:1;display:flex;flex-direction:column;min-width:0}
   .field label{font-size:10px;color:var(--muted);margin:0 0 2px 2px;text-transform:uppercase;letter-spacing:.4px}
-  input[type=text]{
-    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 10px;font-size:16px;
+  .field .unit-tag{font-size:9px}
+  input[type=text],input[type=number]{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 8px;font-size:16px;
     background:#fff;color:var(--ink);
   }
-  input[type=text]:focus{outline:none;border-color:var(--green)}
-  .rm{background:none;border:none;color:#c25;font-size:20px;padding:0 4px;flex:0 0 auto}
+  input:focus{outline:none;border-color:var(--green)}
+  .tick{
+    flex:0 0 auto;width:42px;height:42px;border-radius:10px;border:2px solid var(--line);
+    background:#fff;color:transparent;font-size:20px;font-weight:900;display:flex;align-items:center;justify-content:center;
+  }
+  .tick.on{background:var(--ok);border-color:var(--ok);color:#fff}
+  .rm{background:none;border:none;color:#c25;font-size:20px;padding:0 2px;flex:0 0 auto}
   .card-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
   .addset{background:#eef2ef;color:var(--green);border:none;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600}
-  .save{flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700}
-  .save.done{background:var(--ok-bg);color:var(--ok)}
+  .save{background:var(--green);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700}
   .save:active{opacity:.85}
-  .modal-bg{
-    position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:50;
-    align-items:center;justify-content:center;padding:16px;
-  }
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:50;align-items:center;justify-content:center;padding:16px}
   .modal-bg.open{display:flex}
   .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
   .modal h2{margin:0;padding:14px 16px;font-size:16px;border-bottom:1px solid var(--line)}
@@ -101,6 +104,7 @@
   .modal .mact button{flex:1;border-radius:10px;padding:11px;font-size:14px;font-weight:700;border:none}
   .btn-primary{background:var(--green);color:#fff}
   .btn-ghost{background:#eef0ee;color:var(--ink)}
+  textarea.note{width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;resize:vertical}
   .hint{font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5}
   .toast{
     position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--green);color:#fff;
@@ -113,7 +117,7 @@
 <body>
 <header>
   <h1>Carnet Muscu Fanny</h1>
-  <div class="sub" id="subtitle">Programme Pareto, 4 seances / semaine</div>
+  <div class="sub" id="subtitle">Programme Pareto, 4 séances / semaine</div>
   <div class="top-actions">
     <button id="btn-export">Exporter pour le coach</button>
     <button id="btn-reset">Effacer aujourd'hui</button>
@@ -125,7 +129,7 @@
 
 <div class="modal-bg" id="modal">
   <div class="modal">
-    <h2>Recap pour le coach</h2>
+    <h2>Récap pour le coach</h2>
     <textarea id="export-text" readonly></textarea>
     <div class="mact">
       <button class="btn-ghost" id="btn-close">Fermer</button>
@@ -137,306 +141,302 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------- Donnees du programme (issu du fichier du coach) ---------- */
-const CUE_BSS = "Buste penche ~45, appui loin devant, charge sentie sur le talon arriere.";
-const SS = "Superset (enchaine)";
+/* ================= Programme (fichier du coach) =================
+   unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
+   hintKg = charge conseillée en kg (pour affichage + conversion lb). */
+const CUE_BSS = "Buste penché ~45°, appui loin devant, charge sentie sur le talon arrière.";
+const SS = "Superset (enchaîné)";
 
 const PROGRAM = [
-  { key:"HAUT_A", label:"Haut A", focus:"Epaules / posture", warm:"Echauffement avant de commencer.",
+  { key:"HAUT_A", label:"Haut A", focus:"Épaules / posture",
     ex:[
-      {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", rest:"60s"},
-      {id:"dev_epaules_arnold", name:"Developpe epaules Arnold", sets:3, reps:"8", hint:"6 kg", rest:"60s"},
-      {id:"pompes_inclinees", name:"Pompes (inclinees)", sets:3, reps:"6", hint:"PDC", rest:"60s"},
-      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps a la corde (poulie)", sets:2, reps:"14", hint:"4 kg", rest:"45s"},
+      {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"lb", rest:"60s"},
+      {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
+      {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", bw:true, rest:"60s"},
+      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"lb", rest:"60s"},
+      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
     ]},
-  { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilateral", warm:"Echauffement avant de commencer.",
+  { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilatéral",
     ex:[
-      {id:"hip_thrust_barre", name:"Hip thrust barre / haltere", sets:4, reps:"8", hint:"5 kg", rest:"60s"},
-      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", rest:"60s", ss:SS, cue:CUE_BSS},
-      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche a la poulie", sets:1, reps:"10", hint:"2 kg", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", rest:"15s"},
+      {id:"hip_thrust_barre", name:"Hip thrust barre / haltère", sets:4, reps:"8", hint:"5 kg", hintKg:5, unit:"kg", rest:"60s"},
+      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
+      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", bw:true, rest:"15s"},
     ]},
-  { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture", warm:"Echauffement avant de commencer.",
+  { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
-      {id:"tirage_vertical", name:"Tirage vertical", sets:3, reps:"10", hint:"20 kg", rest:"90s"},
-      {id:"low_row_uni", name:"Low row unilateral", sets:3, reps:"10-12 / cote", hint:"6 kg", rest:"75s"},
-      {id:"dev_couche", name:"Developpe couche", sets:3, reps:"15", hint:"6 kg", rest:"90s"},
-      {id:"elevations_laterales", name:"Elevations laterales", sets:3, reps:"14", hint:"4 kg", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps a la corde", sets:3, reps:"14", hint:"4 kg", rest:"45s"},
-      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", rest:"45s"},
+      {id:"tirage_vertical", name:"Tirage vertical (poulie)", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"lb", rest:"90s"},
+      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"75s"},
+      {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"90s"},
+      {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
+      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
+      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", bw:true, rest:"45s"},
     ]},
-  { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilateral", warm:"Echauffement avant de commencer.",
+  { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
     ex:[
-      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilateral", sets:4, reps:"8 / jambe", hint:"PDC", rest:"60s"},
-      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", rest:"60s", ss:SS, cue:CUE_BSS},
-      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche a la poulie", sets:1, reps:"10", hint:"2 kg", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", rest:"15s"},
+      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", bw:true, rest:"60s"},
+      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
+      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", bw:true, rest:"15s"},
     ]},
 ];
 
-/* exercice id -> nom lisible (pour l'export) */
-const EX_NAME = {};
-PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; }));
+const EX_NAME={}, EX_DEF={};
+PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; if(!EX_DEF[e.id]) EX_DEF[e.id]=e; }));
+function defUnit(exId){ const e=EX_DEF[exId]; return e && e.unit ? e.unit : "kg"; }
 
-/* onglets = les 4 seances + Journal + Progres + Poids */
 const TABS = PROGRAM.concat([
   {key:"JOURNAL", label:"Journal", journal:true},
-  {key:"PROGRES", label:"Progres", progres:true},
+  {key:"PROGRES", label:"Progrès", progres:true},
   {key:"POIDS",   label:"Poids",   poids:true},
 ]);
 
-/* ---------- Stockage ---------- */
-const STORE_KEY = "muscu_fanny_v1";
-function loadDB(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
-function saveDB(db){ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
-let DB = loadDB();   // { exerciseId: [ {date:"2026-08-05", sets:[{w,r},...]}, ... ] }
+/* ================= Poids de corps : objectif aligné sur FAB Agent ================= */
+const BW_START=71.5, BW_GOAL=63;
+const BW_STEPS=[
+  {label:"Mai 2026 — vêtements changent", kg:69.5},
+  {label:"Juillet 2026 — les autres remarquent", kg:67},
+  {label:"Sept 2026 — lean visible", kg:65},
+  {label:"Nov 2026 — objectif", kg:63},
+];
 
-/* Notes de ressenti par seance : { "2026-08-05|HAUT_A": "texte" } */
-const NOTES_KEY = "muscu_fanny_notes_v1";
-function loadNotes(){ try{ return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; }catch(e){ return {}; } }
+/* ================= Stockage ================= */
+const STORE_KEY="muscu_fanny_v1";
+function loadDB(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{}; }catch(e){ return {}; } }
+function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+let DB=loadDB();
+
+const UNITS_KEY="muscu_fanny_units_v1";
+function loadUnits(){ try{ return JSON.parse(localStorage.getItem(UNITS_KEY))||{}; }catch(e){ return {}; } }
+function saveUnits(){ localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
+let UNITS=loadUnits();
+function unitOf(exId){ return UNITS[exId] || defUnit(exId); }
+
+const NOTES_KEY="muscu_fanny_notes_v1";
+function loadNotes(){ try{ return JSON.parse(localStorage.getItem(NOTES_KEY))||{}; }catch(e){ return {}; } }
 function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(NOTES)); }
-let NOTES = loadNotes();
+let NOTES=loadNotes();
 
-/* Poids de corps : [ {date:"2026-08-05", kg:"63.4"} ] */
-const BW_KEY = "muscu_fanny_bw_v1";
-function loadBW(){ try{ return JSON.parse(localStorage.getItem(BW_KEY)) || []; }catch(e){ return []; } }
+const BW_KEY="muscu_fanny_bw_v1";
+function loadBW(){ try{ return JSON.parse(localStorage.getItem(BW_KEY))||[]; }catch(e){ return []; } }
 function saveBW(){ localStorage.setItem(BW_KEY, JSON.stringify(BW)); }
-let BW = loadBW();
-const BW_GOAL_LOW = 62, BW_GOAL_HIGH = 64;
+let BW=loadBW();
 
-/* Parsing d'un poids texte -> nombre (pour graphes et records).
-   "6 kg"->6 ; "2 x 5 kg"->5 (poids par haltere) ; "PDC"/""->null */
-function parseWeight(w){
-  if(w==null) return null;
-  const s=String(w).replace(",",".");
-  const mult=s.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/);
-  if(mult) return parseFloat(mult[2]);
-  const m=s.match(/(\d+(?:\.\d+)?)/);
-  return m?parseFloat(m[1]):null;
-}
-function parseReps(r){ const m=String(r==null?"":r).match(/(\d+(?:\.\d+)?)/); return m?parseFloat(m[1]):null; }
-
-/* Score d'une entree : meilleur poids des series ; si aucun poids (PDC) -> meilleures reps. */
-function entryScore(entry){
-  let bestW=null, bestWreps=null, bestR=null;
-  (entry.sets||[]).forEach(s=>{
-    const w=parseWeight(s.w), r=parseReps(s.r);
-    if(w!=null && (bestW==null || w>bestW)){ bestW=w; bestWreps=r; }
-    if(r!=null && (bestR==null || r>bestR)) bestR=r;
+/* Migration : les anciennes entrées sans unité prennent l'unité par défaut de l'exo. */
+(function migrate(){
+  let changed=false;
+  Object.keys(DB).forEach(exId=>{
+    (DB[exId]||[]).forEach(en=>{ if(!en.unit){ en.unit=defUnit(exId); changed=true; } });
   });
-  if(bestW!=null) return {val:bestW, type:"kg", label:bestW+" kg"+(bestWreps!=null?(" x "+bestWreps):"")};
-  if(bestR!=null) return {val:bestR, type:"reps", label:bestR+" reps"};
+  if(changed) saveDB();
+})();
+
+/* ================= Utilitaires ================= */
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const MOIS=["janv","févr","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
+const MOIS_LONG=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+function frDate(iso){ const [y,m,d]=iso.split("-"); return parseInt(d,10)+" "+MOIS[parseInt(m,10)-1]+" "+y; }
+function frShort(iso){ const [y,m,d]=iso.split("-"); return parseInt(d,10)+" "+MOIS[parseInt(m,10)-1]; }
+function daysAgo(iso){ const a=new Date(iso+"T00:00:00"), b=new Date(todayStr()+"T00:00:00"); const n=Math.round((b-a)/86400000); if(n<=0) return "aujourd'hui"; if(n===1) return "hier"; return "il y a "+n+" j"; }
+function parseNum(x){ if(x==null) return null; const m=String(x).replace(",",".").match(/(\d+(?:\.\d+)?)/); return m?parseFloat(m[1]):null; }
+function toKg(v,unit){ return unit==="lb" ? v*0.453592 : v; }
+function fmtKg(v){ v=Math.round(v*10)/10; return Number.isInteger(v)?String(v):v.toFixed(1); }
+function lbFromKg(kg){ return Math.round(kg*2.20462); }
+
+function summarizeSets(entry){
+  const unit=entry.unit||"kg";
+  return (entry.sets||[]).filter(s=>(s.w||s.r)).map(s=>{
+    const w=(s.w==null?"":String(s.w)).trim(), r=(s.r==null?"":String(s.r)).trim();
+    if(w&&r) return w+" "+unit+" × "+r;
+    if(w) return w+" "+unit;
+    return r;
+  }).join("   ");
+}
+/* score en kg (pour progrès/records) ; si pas de poids -> reps */
+function entryScore(entry){
+  const unit=entry.unit||"kg";
+  let bestKg=null,bestReps=null,bestR=null;
+  (entry.sets||[]).forEach(s=>{
+    const w=parseNum(s.w), r=parseNum(s.r);
+    if(w!=null){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
+    if(r!=null && (bestR==null||r>bestR)) bestR=r;
+  });
+  if(bestKg!=null) return {val:bestKg,type:"kg",label:fmtKg(bestKg)+" kg"+(bestReps!=null?(" × "+bestReps):"")};
+  if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" reps"};
   return null;
 }
 function bestScoreBefore(exId, beforeIdx){
   const h=DB[exId]||[]; let best=null;
-  for(let i=0;i<beforeIdx && i<h.length;i++){
-    const sc=entryScore(h[i]); if(sc && (best==null || sc.val>best)) best=sc.val;
-  }
+  for(let i=0;i<beforeIdx && i<h.length;i++){ const sc=entryScore(h[i]); if(sc && (best==null||sc.val>best)) best=sc.val; }
   return best;
 }
 function bestScoreEver(exId){
-  const h=DB[exId]||[]; let best=null, lbl="";
-  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null || sc.val>best)){ best=sc.val; lbl=sc.label; } });
-  return best==null?null:{val:best, label:lbl};
+  const h=DB[exId]||[]; let best=null,lbl="";
+  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null||sc.val>best)){ best=sc.val; lbl=sc.label; } });
+  return best==null?null:{val:best,label:lbl};
+}
+function todayEntryOf(exId, sess){
+  const h=DB[exId]||[]; if(!h.length) return null;
+  const e=h[h.length-1];
+  return (e.date===todayStr() && e.session===sess) ? e : null;
+}
+function prevEntryOf(exId, sess){
+  const h=DB[exId]||[]; if(!h.length) return null;
+  const t=todayEntryOf(exId,sess);
+  for(let i=h.length-1;i>=0;i--){ if(h[i]!==t) return h[i]; }
+  return null;
 }
 
-function lastEntry(exId){
-  const h = DB[exId]; if(!h || !h.length) return null;
-  return h[h.length-1];
-}
-function todayStr(){
-  const d=new Date();
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-function frDate(iso){
-  const [y,m,d]=iso.split("-");
-  const mois=["janv","fevr","mars","avr","mai","juin","juil","aout","sept","oct","nov","dec"];
-  return d+" "+mois[parseInt(m,10)-1]+" "+y;
-}
-function daysAgo(iso){
-  const a=new Date(iso+"T00:00:00"), b=new Date(todayStr()+"T00:00:00");
-  const n=Math.round((b-a)/86400000);
-  if(n<=0) return "aujourd'hui"; if(n===1) return "hier"; return "il y a "+n+" j";
-}
-function summarizeSets(sets){
-  return sets.filter(s=>(s.w||s.r)).map(s=>{
-    const w=(s.w||"").trim(), r=(s.r||"").trim();
-    if(w&&r) return w+" x "+r;
-    return w||r;
-  }).join("  -  ");
-}
-
-/* ---------- Rendu ---------- */
-let currentTab = 0;
+/* ================= Rendu principal ================= */
+let currentTab=0;
 const tabsEl=document.getElementById("tabs");
 const mainEl=document.getElementById("main");
+let prAnnounced={};
 
 function renderTabs(){
   tabsEl.innerHTML="";
   TABS.forEach((s,i)=>{
     const b=document.createElement("button");
-    b.className="tab"+(i===currentTab?" active":"")+(s.journal?" tab-journal":"");
+    b.className="tab"+(i===currentTab?" active":"")+((s.journal||s.progres||s.poids)?" tab-extra":"");
     b.textContent=s.label;
     b.onclick=()=>{ currentTab=i; renderTabs(); renderSession(); window.scrollTo(0,0); };
     tabsEl.appendChild(b);
   });
 }
-
 function renderSession(){
   const t=TABS[currentTab];
   if(t.journal){ renderJournal(); return; }
   if(t.progres){ renderProgres(); return; }
   if(t.poids){ renderPoids(); return; }
-  const s=t;
-  document.getElementById("subtitle").textContent = s.label+" - "+s.focus;
+  document.getElementById("subtitle").textContent=t.label+" - "+t.focus;
   mainEl.innerHTML="";
-  const warm=document.createElement("div");
-  warm.className="warm";
-  warm.textContent="Echauffement d'abord, puis les exercices dans l'ordre.";
+  const warm=document.createElement("div"); warm.className="warm";
+  warm.textContent="Échauffement d'abord, puis les exercices dans l'ordre. Valide chaque série avec le ✓.";
   mainEl.appendChild(warm);
-
-  s.ex.forEach((e,idx)=>{
-    mainEl.appendChild(exerciseCard(e));
-  });
-
-  mainEl.appendChild(noteCard(todayStr(), s.key));
-
-  const hint=document.createElement("div");
-  hint.className="hint";
-  hint.innerHTML="Tes poids sont enregistres sur ce telephone.<br>Astuce : garde le telephone en mode avion, ca marche pareil.";
+  t.ex.forEach(e=> mainEl.appendChild(exerciseCard(e, t.key)) );
+  mainEl.appendChild(noteCard(todayStr(), t.key));
+  const hint=document.createElement("div"); hint.className="hint";
+  hint.innerHTML="Tes données sont enregistrées sur ce téléphone.<br>Astuce : mets le téléphone en mode avion, ça marche pareil.";
   mainEl.appendChild(hint);
 }
 
-/* Carte "ressenti de la seance" (le coach la verra dans l'export) */
-function noteCard(date, sessionKey){
-  const key=date+"|"+sessionKey;
+function exerciseCard(e, sess){
   const card=document.createElement("div"); card.className="card";
-  const h=document.createElement("div"); h.className="ex-name"; h.style.fontSize="15px";
-  h.textContent="Ressenti de la seance"; card.appendChild(h);
-  const sub=document.createElement("div"); sub.className="ex-target"; sub.style.marginBottom="8px";
-  sub.textContent="Note ici ce que tu as ressenti (ton coach le verra dans l'export).";
-  card.appendChild(sub);
-  const ta=document.createElement("textarea");
-  ta.style.cssText="width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;resize:vertical";
-  ta.placeholder="Ex : fessiers bien sentis sur le hip thrust, genou un peu sensible sur le BSS...";
-  ta.value=NOTES[key]||"";
-  const save=document.createElement("button"); save.className="save"; save.style.marginTop="8px"; save.textContent="Enregistrer le ressenti";
-  save.onclick=()=>{
-    const v=ta.value.trim();
-    if(v) NOTES[key]=v; else delete NOTES[key];
-    saveNotes(); toast("Ressenti enregistre");
-  };
-  card.appendChild(ta); card.appendChild(save);
-  return card;
-}
+  const unit=unitOf(e.id);
+  const todayE=todayEntryOf(e.id, sess);
+  const prevE=prevEntryOf(e.id, sess);
 
-function exerciseCard(e){
-  const card=document.createElement("div");
-  card.className="card";
-  const last=lastEntry(e.id);
-
-  // saved today ?
-  const savedToday = last && last.date===todayStr();
-  if(savedToday) card.classList.add("done");
-
-  const head=document.createElement("div");
-  head.className="ex-head";
+  // en-tête + sélecteur d'unité
+  const head=document.createElement("div"); head.className="ex-head";
+  const lbApprox = (!e.bw && e.hintKg && unit==="lb") ? (" (≈ "+lbFromKg(e.hintKg)+" lb)") : "";
   head.innerHTML=`<div>
       ${e.ss?`<span class="ss-tag">${e.ss}</span><br>`:""}
       <div class="ex-name">${e.name}</div>
-      <div class="ex-target">Objectif : ${e.sets} x ${e.reps} &middot; charge conseillee : ${e.hint} &middot; repos ${e.rest}</div>
+      <div class="ex-target">Objectif : ${e.sets} × ${e.reps} · conseillé : ${e.hint}${lbApprox} · repos ${e.rest}</div>
     </div>`;
   card.appendChild(head);
-
-  if(e.cue){
-    const cue=document.createElement("div"); cue.className="cue"; cue.textContent="Rappel : "+e.cue; card.appendChild(cue);
+  if(!e.bw){
+    const uwrap=document.createElement("div"); uwrap.style.cssText="margin-top:8px;display:flex;align-items:center;gap:8px";
+    uwrap.innerHTML=`<span class="ex-target">Unité de la machine :</span>`;
+    const sel=document.createElement("select"); sel.className="unit-sel";
+    ["kg","lb"].forEach(u=>{ const o=document.createElement("option"); o.value=u; o.textContent=u; if(u===unit)o.selected=true; sel.appendChild(o); });
+    sel.onchange=()=>{ UNITS[e.id]=sel.value; saveUnits(); const te=todayEntryOf(e.id,sess); if(te){ te.unit=sel.value; saveDB(); } renderSession(); };
+    uwrap.appendChild(sel); card.appendChild(uwrap);
   }
 
-  // last time
+  if(e.cue){ const c=document.createElement("div"); c.className="cue"; c.textContent="Rappel : "+e.cue; card.appendChild(c); }
+
+  // dernière fois + record
   const lastEl=document.createElement("div"); lastEl.className="last";
-  if(last){
-    lastEl.innerHTML=`<b>Derniere fois</b> (${daysAgo(last.date)}) : ${summarizeSets(last.sets)||"-"}`;
-  }else{
-    lastEl.innerHTML="<b>Derniere fois</b> : jamais fait encore. Note le poids d'aujourd'hui.";
-  }
+  lastEl.innerHTML = prevE ? `<b>Dernière fois</b> (${daysAgo(prevE.date)}) : ${summarizeSets(prevE)||"-"}`
+                           : "<b>Dernière fois</b> : jamais fait. Note ce que tu fais aujourd'hui.";
   card.appendChild(lastEl);
-
   const rec=bestScoreEver(e.id);
-  if(rec){
-    const r=document.createElement("div"); r.className="last"; r.style.background="#eef6ef"; r.style.color="var(--green)";
-    r.innerHTML=`<b>Record</b> : ${rec.label}`; card.appendChild(r);
+  if(rec){ const r=document.createElement("div"); r.className="last"; r.style.background="#eef6ef"; r.style.color="var(--green)"; r.innerHTML=`<b>Record</b> : ${rec.label}`; card.appendChild(r); }
+
+  // lignes de séries
+  const setsWrap=document.createElement("div"); setsWrap.className="sets"; card.appendChild(setsWrap);
+  const doneSets = todayE ? todayE.sets.slice() : [];
+  const nSuggest = Math.max(0, e.sets - doneSets.length);
+
+  function suggestVal(i){
+    if(prevE && prevE.sets[i]) return {w:prevE.sets[i].w, r:prevE.sets[i].r};
+    if(e.bw) return {w:"", r:e.reps};
+    if(e.hintKg){ const w = unit==="lb" ? lbFromKg(e.hintKg) : e.hintKg; return {w:String(w), r:e.reps}; }
+    return {w:"", r:e.reps};
   }
-
-  // set rows
-  const setsWrap=document.createElement("div"); setsWrap.className="sets";
-  card.appendChild(setsWrap);
-
-  // prefill values: derniere fois si dispo (charge progressive),
-  // sinon les charges conseillees du coach (1ere fois)
-  let prefill=[];
-  if(last) prefill = last.sets.map(x=>({w:x.w,r:x.r}));
-  else prefill = Array.from({length:e.sets}, ()=>({w:e.hint, r:e.reps}));
-  const nRows = Math.max(e.sets, prefill.length, 1);
-
-  function addRow(val){
-    const i=setsWrap.children.length;
-    const row=document.createElement("div"); row.className="setrow";
-    row.innerHTML=`<div class="n">${i+1}</div>
-      <div class="field"><label>Poids</label><input type="text" inputmode="text" class="w" placeholder="${e.hint}" value="${val&&val.w!=null?val.w:""}"></div>
-      <div class="field"><label>Reps</label><input type="text" inputmode="text" class="r" placeholder="${e.reps}" value="${val&&val.r!=null?val.r:""}"></div>
-      <button class="rm" title="Retirer">&times;</button>`;
-    row.querySelector(".rm").onclick=()=>{ row.remove(); renumber(); };
-    setsWrap.appendChild(row);
-  }
-  function renumber(){ [...setsWrap.children].forEach((r,i)=>r.querySelector(".n").textContent=i+1); }
-
-  for(let i=0;i<nRows;i++){ addRow(prefill[i]); }
-
-  const actions=document.createElement("div"); actions.className="card-actions";
-  const addBtn=document.createElement("button"); addBtn.className="addset"; addBtn.textContent="+ serie";
-  addBtn.onclick=()=>addRow(null);
-  const saveBtn=document.createElement("button"); saveBtn.className="save"+(savedToday?" done":"");
-  saveBtn.textContent=savedToday?"Enregistre aujourd'hui - modifier":"Enregistrer";
-  saveBtn.onclick=()=>{
-    const sets=[...setsWrap.querySelectorAll(".setrow")].map(r=>({
-      w:r.querySelector(".w").value.trim(),
-      r:r.querySelector(".r").value.trim()
+  function saveFromUI(){
+    const rows=[...setsWrap.querySelectorAll(".setrow")];
+    const sets=rows.filter(r=>r.classList.contains("done")).map(r=>({
+      w:r.querySelector(".w").value.trim(), r:r.querySelector(".r").value.trim()
     })).filter(s=>s.w||s.r);
-    if(!sets.length){ toast("Rien a enregistrer"); return; }
-    const sess = TABS[currentTab].key;
     DB[e.id]=DB[e.id]||[];
     const h=DB[e.id];
-    let idxSaved;
-    if(h.length && h[h.length-1].date===todayStr() && h[h.length-1].session===sess){ h[h.length-1].sets=sets; idxSaved=h.length-1; }
-    else { h.push({date:todayStr(), sets, session:sess}); idxSaved=h.length-1; }
-    saveDB(DB);
-    // detection de record : score du jour vs meilleur d'avant
-    const todayScore=entryScore({sets});
-    const prevBest=bestScoreBefore(e.id, idxSaved);
-    if(todayScore && (prevBest==null || todayScore.val>prevBest) && DB[e.id].length>1){
-      toast("Nouveau record : "+todayScore.label+" !");
-    } else {
-      toast("Enregistre");
-    }
-    renderSession();
-  };
-  actions.appendChild(addBtn); actions.appendChild(saveBtn);
-  card.appendChild(actions);
+    const isTodays = h.length && h[h.length-1].date===todayStr() && h[h.length-1].session===sess;
+    if(sets.length){
+      if(isTodays){ h[h.length-1].sets=sets; h[h.length-1].unit=unit; }
+      else h.push({date:todayStr(), session:sess, unit, sets});
+    } else if(isTodays){ h.pop(); if(!h.length) delete DB[e.id]; }
+    saveDB();
+  }
+  function makeRow(val, done){
+    const row=document.createElement("div"); row.className="setrow"+(done?" done":"");
+    const i=setsWrap.children.length;
+    row.innerHTML=`<div class="n">${i+1}</div>
+      <div class="field"><label>Poids ${e.bw?"":("("+unit+")")}</label><input type="text" inputmode="decimal" class="w" placeholder="${e.bw?"PDC":unit}" value="${val&&val.w!=null?val.w:""}"></div>
+      <div class="field"><label>Reps</label><input type="text" inputmode="text" class="r" placeholder="${e.reps}" value="${val&&val.r!=null?val.r:""}"></div>
+      <button class="tick${done?" on":""}" title="Valider la série">✓</button>`;
+    const tick=row.querySelector(".tick");
+    tick.onclick=()=>{
+      const nowDone=!row.classList.contains("done");
+      row.classList.toggle("done", nowDone); tick.classList.toggle("on", nowDone);
+      saveFromUI();
+      if(nowDone){
+        const te=todayEntryOf(e.id,sess);
+        if(te){ const sc=entryScore(te); const prevBest=bestScoreBefore(e.id, (DB[e.id]||[]).length-1);
+          if(sc && (prevBest==null || sc.val>prevBest) && (DB[e.id]||[]).length>1 && !prAnnounced[e.id]){ prAnnounced[e.id]=true; toast("Nouveau record : "+sc.label+" !"); }
+          else toast("Série validée"); }
+      } else toast("Série retirée");
+      renderSession();
+    };
+    row.querySelector(".w").oninput=()=>{ if(row.classList.contains("done")) saveFromUI(); };
+    row.querySelector(".r").oninput=()=>{ if(row.classList.contains("done")) saveFromUI(); };
+    setsWrap.appendChild(row);
+  }
+  doneSets.forEach(s=> makeRow(s, true));
+  for(let i=0;i<nSuggest;i++) makeRow(suggestVal(doneSets.length+i), false);
 
+  const actions=document.createElement("div"); actions.className="card-actions";
+  const add=document.createElement("button"); add.className="addset"; add.textContent="+ série";
+  add.onclick=()=> makeRow(e.bw?{w:"",r:e.reps}:suggestVal(setsWrap.children.length), false);
+  actions.appendChild(add); card.appendChild(actions);
   return card;
 }
 
-/* ---------- Journal : liste des seances datees, reouvrables ---------- */
+/* Note de ressenti (coach) */
+function noteCard(date, sessionKey){
+  const key=date+"|"+sessionKey;
+  const card=document.createElement("div"); card.className="card";
+  card.innerHTML=`<div class="ex-name" style="font-size:15px">Ressenti de la séance</div>
+    <div class="ex-target" style="margin-bottom:8px">Note ici ton ressenti (ton coach le verra dans l'export).</div>`;
+  const ta=document.createElement("textarea"); ta.className="note";
+  ta.placeholder="Ex : fessiers bien sentis sur le hip thrust, genou un peu sensible sur le BSS...";
+  ta.value=NOTES[key]||"";
+  ta.oninput=()=>{ const v=ta.value.trim(); if(v) NOTES[key]=v; else delete NOTES[key]; saveNotes(); };
+  const s=document.createElement("button"); s.className="save"; s.style.marginTop="8px"; s.textContent="Enregistrer le ressenti";
+  s.onclick=()=>{ toast("Ressenti enregistré"); };
+  card.appendChild(ta); card.appendChild(s);
+  return card;
+}
+
+/* ================= Journal ================= */
 function collectSessions(){
   const map={};
   Object.keys(DB).forEach(exId=>{
-    DB[exId].forEach((entry,idx)=>{
-      const sess=entry.session||"AUTRE";
-      const k=entry.date+"|"+sess;
+    (DB[exId]||[]).forEach((entry,idx)=>{
+      const sess=entry.session||"AUTRE"; const k=entry.date+"|"+sess;
       if(!map[k]) map[k]={date:entry.date, session:sess, items:[]};
       map[k].items.push({exId, idx});
     });
@@ -445,18 +445,14 @@ function collectSessions(){
   arr.sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:(a.session<b.session?-1:1)));
   return arr;
 }
-function sessionLabel(key){ const t=PROGRAM.find(s=>s.key===key); return t?t.label:"Seance"; }
-
-let journalOpen={};
-let journalView="list";
-let calCursor=null;
+function sessionLabel(key){ const t=PROGRAM.find(s=>s.key===key); return t?t.label:"Séance"; }
 function sessionLabelShort(key){ const t=PROGRAM.find(s=>s.key===key); if(!t) return "?"; return t.label.replace("Haut","H").replace("Bas","B").replace(/\s/g,""); }
 
+let journalOpen={}, journalView="list", calCursor=null;
 function renderJournal(){
-  document.getElementById("subtitle").textContent="Journal - toutes tes seances";
+  document.getElementById("subtitle").textContent="Journal - toutes tes séances";
   mainEl.innerHTML="";
   const groups=collectSessions();
-
   const tg=document.createElement("div"); tg.style.cssText="display:flex;gap:8px;margin-bottom:12px";
   [["list","Liste"],["cal","Calendrier"]].forEach(([v,lab])=>{
     const b=document.createElement("button"); b.textContent=lab;
@@ -465,334 +461,211 @@ function renderJournal(){
     tg.appendChild(b);
   });
   mainEl.appendChild(tg);
-
-  if(!groups.length){
-    const d=document.createElement("div"); d.className="warm";
-    d.textContent="Aucune seance enregistree pour le moment. Fais ta premiere seance, elle apparaitra ici avec sa date.";
-    mainEl.appendChild(d); return;
-  }
-
+  if(!groups.length){ const d=document.createElement("div"); d.className="warm"; d.textContent="Aucune séance enregistrée pour le moment. Fais ta première séance, elle apparaîtra ici avec sa date."; mainEl.appendChild(d); return; }
   if(journalView==="cal"){ renderCalendar(groups); return; }
-
   groups.forEach(g=>{
-    const key=g.date+"|"+g.session;
-    const open=!!journalOpen[key];
-    const hasNote=!!NOTES[key];
+    const key=g.date+"|"+g.session; const open=!!journalOpen[key]; const hasNote=!!NOTES[key];
     const card=document.createElement("div"); card.className="card";
     const head=document.createElement("div"); head.className="ex-head"; head.style.cursor="pointer";
-    head.innerHTML=`<div>
-        <div class="ex-name">${sessionLabel(g.session)}</div>
-        <div class="ex-target">${frDate(g.date)} &middot; ${daysAgo(g.date)} &middot; ${g.items.length} exercice(s)${hasNote?' &middot; note':''}</div>
-      </div><div style="font-size:22px;color:var(--muted);line-height:1">${open?"&minus;":"+"}</div>`;
+    head.innerHTML=`<div><div class="ex-name">${sessionLabel(g.session)}</div>
+        <div class="ex-target">${frDate(g.date)} · ${daysAgo(g.date)} · ${g.items.length} exercice(s)${hasNote?" · note":""}</div></div>
+      <div style="font-size:22px;color:var(--muted);line-height:1">${open?"−":"+"}</div>`;
     head.onclick=()=>{ journalOpen[key]=!open; renderJournal(); };
     card.appendChild(head);
     if(open){
       g.items.forEach(it=> card.appendChild(journalEditBlock(it.exId, it.idx)) );
       card.appendChild(journalNoteBlock(g.date, g.session));
-      const del=document.createElement("button");
-      del.className="addset"; del.style.color="#c25"; del.style.marginTop="12px"; del.style.width="100%";
-      del.textContent="Supprimer cette seance";
+      const del=document.createElement("button"); del.className="addset"; del.style.cssText="color:#c25;margin-top:12px;width:100%"; del.textContent="Supprimer cette séance";
       del.onclick=()=>{
-        if(!confirm("Supprimer toute la seance du "+frDate(g.date)+" ("+sessionLabel(g.session)+") ?")) return;
-        const byEx={};
-        g.items.forEach(it=>{ (byEx[it.exId]=byEx[it.exId]||[]).push(it.idx); });
-        Object.keys(byEx).forEach(exId=>{
-          byEx[exId].sort((a,b)=>b-a).forEach(i=>DB[exId].splice(i,1));
-          if(!DB[exId].length) delete DB[exId];
-        });
-        saveDB(DB); delete journalOpen[key]; toast("Seance supprimee"); renderJournal();
+        if(!confirm("Supprimer toute la séance du "+frDate(g.date)+" ("+sessionLabel(g.session)+") ?")) return;
+        const byEx={}; g.items.forEach(it=>{ (byEx[it.exId]=byEx[it.exId]||[]).push(it.idx); });
+        Object.keys(byEx).forEach(exId=>{ byEx[exId].sort((a,b)=>b-a).forEach(i=>DB[exId].splice(i,1)); if(!DB[exId].length) delete DB[exId]; });
+        saveDB(); delete journalOpen[key]; toast("Séance supprimée"); renderJournal();
       };
       card.appendChild(del);
     }
     mainEl.appendChild(card);
   });
 }
-
-function journalNoteBlock(date, session){
-  const key=date+"|"+session;
-  const wrap=document.createElement("div");
-  wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
-  const t=document.createElement("div"); t.className="ex-name"; t.style.fontSize="14px"; t.textContent="Ressenti (le coach le verra)"; wrap.appendChild(t);
-  const ta=document.createElement("textarea");
-  ta.style.cssText="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;resize:vertical;margin-top:6px";
-  ta.placeholder="Ajoute un ressenti...";
-  ta.value=NOTES[key]||"";
-  const s=document.createElement("button"); s.className="save"; s.style.marginTop="6px"; s.textContent="Enregistrer le ressenti";
-  s.onclick=()=>{ const v=ta.value.trim(); if(v)NOTES[key]=v; else delete NOTES[key]; saveNotes(); toast("Ressenti enregistre"); };
-  wrap.appendChild(ta); wrap.appendChild(s);
-  return wrap;
-}
-
-function renderCalendar(groups){
-  const byDate={};
-  groups.forEach(g=>{ (byDate[g.date]=byDate[g.date]||[]).push(g); });
-  if(!calCursor) calCursor=todayStr().slice(0,7);
-  let [Y,M]=calCursor.split("-").map(Number);
-  const moisN=["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
-  const nav=document.createElement("div"); nav.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px";
-  nav.innerHTML=`<button class="addset" id="cal-prev">&lsaquo;</button><b>${moisN[M-1]} ${Y}</b><button class="addset" id="cal-next">&rsaquo;</button>`;
-  mainEl.appendChild(nav);
-  nav.querySelector("#cal-prev").onclick=()=>{ let m=M-1,y=Y; if(m<1){m=12;y--;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
-  nav.querySelector("#cal-next").onclick=()=>{ let m=M+1,y=Y; if(m>12){m=1;y++;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
-
-  const grid=document.createElement("div"); grid.className="card"; grid.style.padding="10px";
-  const wrap=document.createElement("div"); wrap.style.cssText="display:grid;grid-template-columns:repeat(7,1fr);gap:4px";
-  ["L","M","M","J","V","S","D"].forEach(d=>{ const h=document.createElement("div"); h.textContent=d; h.style.cssText="text-align:center;font-size:11px;color:var(--muted);font-weight:700;padding:2px 0"; wrap.appendChild(h); });
-  const first=new Date(Y, M-1, 1);
-  const startDow=(first.getDay()+6)%7;
-  const daysInMonth=new Date(Y, M, 0).getDate();
-  for(let i=0;i<startDow;i++){ wrap.appendChild(document.createElement("div")); }
-  for(let d=1; d<=daysInMonth; d++){
-    const iso=Y+"-"+String(M).padStart(2,"0")+"-"+String(d).padStart(2,"0");
-    const has=byDate[iso];
-    const cell=document.createElement("div");
-    cell.style.cssText="min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;padding:2px;"+(has?"background:#eef6ef;color:var(--green);font-weight:700;cursor:pointer":"color:var(--ink)");
-    if(iso===todayStr()) cell.style.boxShadow="inset 0 0 0 2px var(--green)";
-    cell.innerHTML=`<div>${d}</div>`+(has?`<div style="font-size:9px;line-height:1.1">${has.map(g=>sessionLabelShort(g.session)).join(" ")}</div>`:"");
-    if(has){ cell.onclick=()=>{ journalView="list"; has.forEach(g=>journalOpen[g.date+"|"+g.session]=true); renderJournal(); window.scrollTo(0,0); }; }
-    wrap.appendChild(cell);
-  }
-  grid.appendChild(wrap); mainEl.appendChild(grid);
-  const legend=document.createElement("div"); legend.className="hint"; legend.textContent="Jours en vert = seances. Tape dessus pour rouvrir la seance.";
-  mainEl.appendChild(legend);
-}
-
 function journalEditBlock(exId, idx){
-  const wrap=document.createElement("div");
-  wrap.style.borderTop="1px solid var(--line)"; wrap.style.paddingTop="10px"; wrap.style.marginTop="10px";
-  const entry=DB[exId][idx];
-  const title=document.createElement("div"); title.className="ex-name"; title.style.fontSize="14px";
-  title.textContent=EX_NAME[exId]||exId; wrap.appendChild(title);
+  const wrap=document.createElement("div"); wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
+  const entry=DB[exId][idx]; const unit=entry.unit||"kg";
+  const title=document.createElement("div"); title.className="ex-name"; title.style.fontSize="14px"; title.textContent=(EX_NAME[exId]||exId)+" ("+unit+")"; wrap.appendChild(title);
   const setsWrap=document.createElement("div"); setsWrap.className="sets"; wrap.appendChild(setsWrap);
   function renum(){ [...setsWrap.children].forEach((r,i)=>r.querySelector(".n").textContent=i+1); }
   function addRow(val){
-    const i=setsWrap.children.length;
-    const row=document.createElement("div"); row.className="setrow";
+    const i=setsWrap.children.length; const row=document.createElement("div"); row.className="setrow";
     row.innerHTML=`<div class="n">${i+1}</div>
-      <div class="field"><label>Poids</label><input type="text" class="w" value="${val&&val.w!=null?val.w:""}"></div>
+      <div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" value="${val&&val.w!=null?val.w:""}"></div>
       <div class="field"><label>Reps</label><input type="text" class="r" value="${val&&val.r!=null?val.r:""}"></div>
-      <button class="rm">&times;</button>`;
+      <button class="rm">×</button>`;
     row.querySelector(".rm").onclick=()=>{ row.remove(); renum(); };
     setsWrap.appendChild(row);
   }
   (entry.sets||[]).forEach(s=>addRow(s));
   const acts=document.createElement("div"); acts.className="card-actions";
-  const addBtn=document.createElement("button"); addBtn.className="addset"; addBtn.textContent="+ serie"; addBtn.onclick=()=>addRow(null);
+  const add=document.createElement("button"); add.className="addset"; add.textContent="+ série"; add.onclick=()=>addRow(null);
   const save=document.createElement("button"); save.className="save"; save.textContent="Enregistrer les modifs";
-  save.onclick=()=>{
-    const sets=[...setsWrap.querySelectorAll(".setrow")].map(r=>({w:r.querySelector(".w").value.trim(), r:r.querySelector(".r").value.trim()})).filter(s=>s.w||s.r);
-    DB[exId][idx].sets=sets; saveDB(DB); toast("Modifie");
-  };
-  acts.appendChild(addBtn); acts.appendChild(save); wrap.appendChild(acts);
+  save.onclick=()=>{ const sets=[...setsWrap.querySelectorAll(".setrow")].map(r=>({w:r.querySelector(".w").value.trim(), r:r.querySelector(".r").value.trim()})).filter(s=>s.w||s.r); DB[exId][idx].sets=sets; saveDB(); toast("Modifié"); };
+  acts.appendChild(add); acts.appendChild(save); wrap.appendChild(acts);
   return wrap;
 }
+function journalNoteBlock(date, session){
+  const key=date+"|"+session; const wrap=document.createElement("div"); wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
+  wrap.innerHTML=`<div class="ex-name" style="font-size:14px">Ressenti (le coach le verra)</div>`;
+  const ta=document.createElement("textarea"); ta.className="note"; ta.style.marginTop="6px"; ta.placeholder="Ajoute un ressenti..."; ta.value=NOTES[key]||"";
+  ta.oninput=()=>{ const v=ta.value.trim(); if(v)NOTES[key]=v; else delete NOTES[key]; saveNotes(); };
+  const s=document.createElement("button"); s.className="save"; s.style.marginTop="6px"; s.textContent="Enregistrer le ressenti"; s.onclick=()=>toast("Ressenti enregistré");
+  wrap.appendChild(ta); wrap.appendChild(s); return wrap;
+}
+function renderCalendar(groups){
+  const byDate={}; groups.forEach(g=>{ (byDate[g.date]=byDate[g.date]||[]).push(g); });
+  if(!calCursor) calCursor=todayStr().slice(0,7);
+  let [Y,M]=calCursor.split("-").map(Number);
+  const nav=document.createElement("div"); nav.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px";
+  nav.innerHTML=`<button class="addset" id="cp">‹</button><b>${MOIS_LONG[M-1]} ${Y}</b><button class="addset" id="cn">›</button>`;
+  mainEl.appendChild(nav);
+  nav.querySelector("#cp").onclick=()=>{ let m=M-1,y=Y; if(m<1){m=12;y--;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
+  nav.querySelector("#cn").onclick=()=>{ let m=M+1,y=Y; if(m>12){m=1;y++;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
+  const grid=document.createElement("div"); grid.className="card"; grid.style.padding="10px";
+  const wrap=document.createElement("div"); wrap.style.cssText="display:grid;grid-template-columns:repeat(7,1fr);gap:4px";
+  ["L","M","M","J","V","S","D"].forEach(d=>{ const h=document.createElement("div"); h.textContent=d; h.style.cssText="text-align:center;font-size:11px;color:var(--muted);font-weight:700;padding:2px 0"; wrap.appendChild(h); });
+  const startDow=(new Date(Y,M-1,1).getDay()+6)%7;
+  const daysInMonth=new Date(Y,M,0).getDate();
+  for(let i=0;i<startDow;i++) wrap.appendChild(document.createElement("div"));
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=Y+"-"+String(M).padStart(2,"0")+"-"+String(d).padStart(2,"0"); const has=byDate[iso];
+    const cell=document.createElement("div");
+    cell.style.cssText="min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;padding:2px;"+(has?"background:#eef6ef;color:var(--green);font-weight:700;cursor:pointer":"color:var(--ink)");
+    if(iso===todayStr()) cell.style.boxShadow="inset 0 0 0 2px var(--green)";
+    cell.innerHTML=`<div>${d}</div>`+(has?`<div style="font-size:9px;line-height:1.1">${has.map(g=>sessionLabelShort(g.session)).join(" ")}</div>`:"");
+    if(has) cell.onclick=()=>{ journalView="list"; has.forEach(g=>journalOpen[g.date+"|"+g.session]=true); renderJournal(); window.scrollTo(0,0); };
+    wrap.appendChild(cell);
+  }
+  grid.appendChild(wrap); mainEl.appendChild(grid);
+  const lg=document.createElement("div"); lg.className="hint"; lg.textContent="Jours en vert = séances. Tape dessus pour rouvrir la séance."; mainEl.appendChild(lg);
+}
 
-/* ---------- Graphe SVG simple (courbe) ---------- */
+/* ================= Graphe ================= */
 function lineChart(points, opts){
   opts=opts||{};
-  const W=320, H=150, padL=34, padR=12, padT=12, padB=24;
-  if(!points.length) return "<div class='last'>Pas encore de donnee a afficher.</div>";
-  const xs=points.map((p,i)=>i);
+  const W=320,H=150,padL=34,padR=12,padT=12,padB=24;
+  if(!points.length) return "<div class='last'>Pas encore de donnée à afficher.</div>";
   const ys=points.map(p=>p.y);
   let ymin=Math.min(...ys), ymax=Math.max(...ys);
   if(opts.yMin!=null) ymin=Math.min(ymin,opts.yMin);
   if(opts.yMax!=null) ymax=Math.max(ymax,opts.yMax);
+  if(opts.lines) opts.lines.forEach(l=>{ ymin=Math.min(ymin,l.y); ymax=Math.max(ymax,l.y); });
   if(ymin===ymax){ ymin-=1; ymax+=1; }
-  const pad=(ymax-ymin)*0.15; ymin-=pad; ymax+=pad;
-  const nx=Math.max(1, points.length-1);
-  const X=i=> padL + (i/nx)*(W-padL-padR);
-  const Y=v=> padT + (1-(v-ymin)/(ymax-ymin))*(H-padT-padB);
+  const pd=(ymax-ymin)*0.15; ymin-=pd; ymax+=pd;
+  const nx=Math.max(1,points.length-1);
+  const X=i=> padL+(i/nx)*(W-padL-padR);
+  const Y=v=> padT+(1-(v-ymin)/(ymax-ymin))*(H-padT-padB);
   let g="";
-  // bande objectif (poids de corps)
-  if(opts.band){
-    const y1=Y(opts.band[1]), y2=Y(opts.band[0]);
-    g+=`<rect x='${padL}' y='${y1.toFixed(1)}' width='${(W-padL-padR).toFixed(1)}' height='${(y2-y1).toFixed(1)}' fill='#43594b18'></rect>`;
-  }
-  // axes labels y (min/max)
+  if(opts.lines) opts.lines.forEach(l=>{ const y=Y(l.y).toFixed(1); g+=`<line x1='${padL}' y1='${y}' x2='${W-padR}' y2='${y}' stroke='${l.color||"#43594B"}' stroke-width='1' stroke-dasharray='4 3'></line><text x='${W-padR}' y='${(+y-3)}' font-size='9' fill='${l.color||"#43594B"}' text-anchor='end'>${l.label||""}</text>`; });
   g+=`<text x='4' y='${(Y(ymax)+4).toFixed(1)}' font-size='10' fill='#9a9f97'>${(+ymax.toFixed(1))}</text>`;
   g+=`<text x='4' y='${(Y(ymin)+4).toFixed(1)}' font-size='10' fill='#9a9f97'>${(+ymin.toFixed(1))}</text>`;
-  // ligne
   const d=points.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p.y).toFixed(1)).join(" ");
   g+=`<path d='${d}' fill='none' stroke='#43594B' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'></path>`;
-  // points + labels x (premier / dernier)
   points.forEach((p,i)=>{ g+=`<circle cx='${X(i).toFixed(1)}' cy='${Y(p.y).toFixed(1)}' r='3.2' fill='#43594B'></circle>`; });
-  const showX=[0, points.length-1].filter((v,i,a)=>a.indexOf(v)===i);
-  showX.forEach(i=>{ g+=`<text x='${X(i).toFixed(1)}' y='${H-6}' font-size='10' fill='#9a9f97' text-anchor='${i===0?"start":"end"}'>${points[i].x}</text>`; });
+  [0,points.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>{ g+=`<text x='${X(i).toFixed(1)}' y='${H-6}' font-size='10' fill='#9a9f97' text-anchor='${i===0?"start":"end"}'>${points[i].x}</text>`; });
   return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>${g}</svg>`;
 }
 
-/* ---------- Onglet Progres (courbe par exercice + records) ---------- */
+/* ================= Onglet Progrès ================= */
 let progresEx=null;
 function renderProgres(){
-  document.getElementById("subtitle").textContent="Progres - ta charge dans le temps";
+  document.getElementById("subtitle").textContent="Progrès - ta charge dans le temps (en kg)";
   mainEl.innerHTML="";
-  const ids=Object.keys(DB).filter(id=>DB[id] && DB[id].length);
-  if(!ids.length){
-    const d=document.createElement("div"); d.className="warm";
-    d.textContent="Fais quelques seances et tu verras ici tes courbes de progression et tes records.";
-    mainEl.appendChild(d); return;
-  }
-  // ordre programme
-  const ordered=[];
-  PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); }));
-  ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
+  const ids=Object.keys(DB).filter(id=>DB[id]&&DB[id].length);
+  if(!ids.length){ const d=document.createElement("div"); d.className="warm"; d.textContent="Fais quelques séances et tu verras ici tes courbes de progression et tes records."; mainEl.appendChild(d); return; }
+  const ordered=[]; PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); })); ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
   if(!progresEx || !ordered.includes(progresEx)) progresEx=ordered[0];
-
   const card=document.createElement("div"); card.className="card";
-  const sel=document.createElement("select");
-  sel.style.cssText="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:15px;background:#fff;margin-bottom:10px";
-  ordered.forEach(id=>{
-    const o=document.createElement("option"); o.value=id; o.textContent=EX_NAME[id]||id; if(id===progresEx)o.selected=true; sel.appendChild(o);
-  });
+  const sel=document.createElement("select"); sel.className="unit-sel"; sel.style.cssText="width:100%;padding:11px;font-size:15px;margin-bottom:10px";
+  ordered.forEach(id=>{ const o=document.createElement("option"); o.value=id; o.textContent=EX_NAME[id]||id; if(id===progresEx)o.selected=true; sel.appendChild(o); });
   sel.onchange=()=>{ progresEx=sel.value; renderProgres(); };
   card.appendChild(sel);
-
-  const pts=(DB[progresEx]||[]).map(e=>{ const sc=entryScore(e); return sc?{x:frShort(e.date), y:sc.val, type:sc.type}:null; }).filter(Boolean);
-  const unit=pts.length&&pts[0].type==="reps"?" reps":" kg";
-  const chart=document.createElement("div"); chart.innerHTML=lineChart(pts,{});
-  card.appendChild(chart);
-
-  const rec=bestScoreEver(progresEx);
+  const pts=(DB[progresEx]||[]).map(e=>{ const sc=entryScore(e); return sc?{x:frShort(e.date), y:Math.round(sc.val*10)/10}:null; }).filter(Boolean);
+  const chart=document.createElement("div"); chart.innerHTML=lineChart(pts,{}); card.appendChild(chart);
+  const rec=bestScoreEver(progresEx); const le=(DB[progresEx]||[]).slice(-1)[0]; const lsc=le?entryScore(le):null;
   const info=document.createElement("div"); info.className="last"; info.style.marginTop="10px";
-  const lastE=lastEntry(progresEx); const lastSc=lastE?entryScore(lastE):null;
-  info.innerHTML=`<b>Record</b> : ${rec?rec.label:"-"} &nbsp;&middot;&nbsp; <b>Derniere</b> : ${lastSc?lastSc.label:"-"} &nbsp;&middot;&nbsp; ${pts.length} seance(s)`;
-  card.appendChild(info);
-  mainEl.appendChild(card);
-
-  // tableau recap records de tous les exos
+  info.innerHTML=`<b>Record</b> : ${rec?rec.label:"-"} &nbsp;·&nbsp; <b>Dernière</b> : ${lsc?lsc.label:"-"} &nbsp;·&nbsp; ${pts.length} séance(s)`;
+  card.appendChild(info); mainEl.appendChild(card);
   const rc=document.createElement("div"); rc.className="card";
-  const rh=document.createElement("div"); rh.className="ex-name"; rh.style.fontSize="15px"; rh.textContent="Tes records"; rc.appendChild(rh);
-  ordered.forEach(id=>{
-    const r=bestScoreEver(id); if(!r) return;
-    const row=document.createElement("div"); row.className="last"; row.style.display="flex"; row.style.justifyContent="space-between";
-    row.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:var(--green)">${r.label}</b>`;
-    rc.appendChild(row);
-  });
+  rc.innerHTML=`<div class="ex-name" style="font-size:15px">Tes records</div>`;
+  ordered.forEach(id=>{ const r=bestScoreEver(id); if(!r) return; const row=document.createElement("div"); row.className="last"; row.style.cssText="display:flex;justify-content:space-between"; row.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:var(--green)">${r.label}</b>`; rc.appendChild(row); });
   mainEl.appendChild(rc);
 }
-function frShort(iso){ const [y,m,d]=iso.split("-"); const mo=["jan","fev","mar","avr","mai","juin","juil","aou","sep","oct","nov","dec"]; return parseInt(d,10)+" "+mo[parseInt(m,10)-1]; }
 
-/* ---------- Onglet Poids de corps ---------- */
+/* ================= Onglet Poids de corps ================= */
 function renderPoids(){
-  document.getElementById("subtitle").textContent="Poids de corps - objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg";
+  document.getElementById("subtitle").textContent="Poids de corps - objectif "+BW_GOAL+" kg";
   mainEl.innerHTML="";
-  // saisie
   const add=document.createElement("div"); add.className="card";
   add.innerHTML=`<div class="ex-name" style="font-size:15px">Noter mon poids aujourd'hui</div>`;
   const row=document.createElement("div"); row.className="setrow"; row.style.marginTop="8px";
-  row.innerHTML=`<div class="field"><label>Poids (kg)</label><input type="text" inputmode="decimal" id="bw-in" placeholder="ex : 63.4"></div>`;
+  row.innerHTML=`<div class="field"><label>Poids (kg)</label><input type="text" inputmode="decimal" id="bw-in" placeholder="ex : 68.5"></div>`;
   const b=document.createElement("button"); b.className="save"; b.style.maxWidth="120px"; b.textContent="Enregistrer";
   row.appendChild(b); add.appendChild(row); mainEl.appendChild(add);
-  b.onclick=()=>{
-    const v=document.getElementById("bw-in").value.trim().replace(",",".");
-    if(!v || isNaN(parseFloat(v))){ toast("Entre un poids valide"); return; }
-    const t=todayStr(); const ex=BW.find(x=>x.date===t);
-    if(ex) ex.kg=v; else BW.push({date:t, kg:v});
-    BW.sort((a,b)=>a.date<b.date?-1:1); saveBW(); toast("Poids enregistre"); renderPoids();
-  };
-  // courbe
+  b.onclick=()=>{ const v=document.getElementById("bw-in").value.trim().replace(",","."); if(!v||isNaN(parseFloat(v))){ toast("Entre un poids valide"); return; } const t=todayStr(); const ex=BW.find(x=>x.date===t); if(ex)ex.kg=v; else BW.push({date:t,kg:v}); BW.sort((a,b)=>a.date<b.date?-1:1); saveBW(); toast("Poids enregistré"); renderPoids(); };
   const pts=BW.map(x=>({x:frShort(x.date), y:parseFloat(String(x.kg).replace(",","."))})).filter(p=>!isNaN(p.y));
   const ch=document.createElement("div"); ch.className="card";
   ch.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:8px">Ta courbe</div>`+
-    lineChart(pts,{band:[BW_GOAL_LOW,BW_GOAL_HIGH], yMin:BW_GOAL_LOW-1, yMax:BW_GOAL_HIGH+1});
-  const leg=document.createElement("div"); leg.className="ex-target"; leg.style.marginTop="6px";
-  leg.textContent="Zone verte = ton objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg.";
-  ch.appendChild(leg); mainEl.appendChild(ch);
-  // historique
-  if(BW.length){
-    const hist=document.createElement("div"); hist.className="card";
-    hist.innerHTML=`<div class="ex-name" style="font-size:15px">Historique</div>`;
-    [...BW].reverse().forEach(x=>{
-      const r=document.createElement("div"); r.className="last"; r.style.display="flex"; r.style.justifyContent="space-between"; r.style.alignItems="center";
-      r.innerHTML=`<span>${frDate(x.date)}</span><span><b>${x.kg} kg</b> <button class="rm" style="font-size:18px">&times;</button></span>`;
-      r.querySelector(".rm").onclick=()=>{ if(confirm("Supprimer cette pesee ?")){ BW=BW.filter(y=>y.date!==x.date); saveBW(); renderPoids(); } };
-      hist.appendChild(r);
-    });
-    mainEl.appendChild(hist);
-  }
+    lineChart(pts,{yMin:BW_GOAL-1, yMax:BW_START+0.5, lines:[{y:BW_GOAL,label:"objectif "+BW_GOAL,color:"#3a7d44"}]});
+  mainEl.appendChild(ch);
+  const st=document.createElement("div"); st.className="card"; st.innerHTML=`<div class="ex-name" style="font-size:15px">Étapes (départ ${BW_START} kg)</div>`;
+  const cur=pts.length?pts[pts.length-1].y:null;
+  BW_STEPS.forEach(s=>{ const done=cur!=null && cur<=s.kg; const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span style="color:${done?"var(--green)":"var(--muted)"}">${done?"✓ ":""}${s.label}</span><b>${s.kg} kg</b>`; st.appendChild(r); });
+  mainEl.appendChild(st);
+  if(BW.length){ const hist=document.createElement("div"); hist.className="card"; hist.innerHTML=`<div class="ex-name" style="font-size:15px">Historique</div>`;
+    [...BW].reverse().forEach(x=>{ const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between;align-items:center"; r.innerHTML=`<span>${frDate(x.date)}</span><span><b>${x.kg} kg</b> <button class="rm" style="font-size:18px">×</button></span>`; r.querySelector(".rm").onclick=()=>{ if(confirm("Supprimer cette pesée ?")){ BW=BW.filter(y=>y.date!==x.date); saveBW(); renderPoids(); } }; hist.appendChild(r); });
+    mainEl.appendChild(hist); }
 }
 
-/* ---------- Export coach ---------- */
+/* ================= Export coach ================= */
 function buildExport(){
-  let out="CARNET MUSCU FANNY\nExport du "+frDate(todayStr())+"\n\n";
-  // group by exercise, show last 4 sessions
+  let out="CARNET MUSCU FANNY\nExport du "+frDate(todayStr())+"\n(progrès en kg ; poids saisis dans l'unité de la machine)\n\n";
   const ids=Object.keys(DB);
-  if(!ids.length) return out+"(aucune seance enregistree pour le moment)";
-  // keep program order
-  const ordered=[];
-  PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); }));
-  ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
-  ordered.forEach(id=>{
-    const h=DB[id]; if(!h||!h.length) return;
-    const rec=bestScoreEver(id);
+  const ordered=[]; PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); })); ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
+  let any=false;
+  ordered.forEach(id=>{ const h=DB[id]; if(!h||!h.length) return; any=true; const rec=bestScoreEver(id);
     out+="* "+(EX_NAME[id]||id)+(rec?"  [record "+rec.label+"]":"")+"\n";
-    h.slice(-4).forEach(entry=>{
-      out+="   "+frDate(entry.date)+" : "+(summarizeSets(entry.sets)||"-")+"\n";
-    });
+    h.slice(-4).forEach(en=>{ out+="   "+frDate(en.date)+" : "+(summarizeSets(en)||"-")+"\n"; });
     out+="\n";
   });
-  // ressentis
-  const noteKeys=Object.keys(NOTES).filter(k=>NOTES[k]).sort().reverse();
-  if(noteKeys.length){
-    out+="RESSENTIS\n";
-    noteKeys.slice(0,12).forEach(k=>{
-      const [date,sess]=k.split("|");
-      out+="   "+frDate(date)+" ("+sessionLabel(sess)+") : "+NOTES[k]+"\n";
-    });
-    out+="\n";
-  }
-  // poids de corps
-  if(BW.length){
-    out+="POIDS DE CORPS (objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg)\n";
-    [...BW].slice(-8).forEach(x=>{ out+="   "+frDate(x.date)+" : "+x.kg+" kg\n"; });
-    out+="\n";
-  }
+  if(!any) out+="(aucune séance enregistrée pour le moment)\n\n";
+  const nk=Object.keys(NOTES).filter(k=>NOTES[k]).sort().reverse();
+  if(nk.length){ out+="RESSENTIS\n"; nk.slice(0,12).forEach(k=>{ const [d,s]=k.split("|"); out+="   "+frDate(d)+" ("+sessionLabel(s)+") : "+NOTES[k]+"\n"; }); out+="\n"; }
+  if(BW.length){ out+="POIDS DE CORPS (objectif "+BW_GOAL+" kg)\n"; [...BW].slice(-8).forEach(x=>{ out+="   "+frDate(x.date)+" : "+x.kg+" kg\n"; }); out+="\n"; }
   return out.trim();
 }
 const modal=document.getElementById("modal");
-document.getElementById("btn-export").onclick=()=>{
-  document.getElementById("export-text").value=buildExport();
-  modal.classList.add("open");
-};
+document.getElementById("btn-export").onclick=()=>{ document.getElementById("export-text").value=buildExport(); modal.classList.add("open"); };
 document.getElementById("btn-close").onclick=()=>modal.classList.remove("open");
 modal.onclick=(ev)=>{ if(ev.target===modal) modal.classList.remove("open"); };
-document.getElementById("btn-share").onclick=async ()=>{
+document.getElementById("btn-share").onclick=async()=>{
   const text=document.getElementById("export-text").value;
-  if(navigator.share){
-    try{ await navigator.share({title:"Carnet muscu Fanny", text}); return; }catch(e){}
-  }
-  try{
-    await navigator.clipboard.writeText(text);
-    toast("Copie ! Colle-le dans un message");
-  }catch(e){
-    const ta=document.getElementById("export-text"); ta.removeAttribute("readonly"); ta.focus(); ta.select();
-    toast("Selectionne puis copie");
-  }
+  if(navigator.share){ try{ await navigator.share({title:"Carnet muscu Fanny", text}); return; }catch(e){} }
+  try{ await navigator.clipboard.writeText(text); toast("Copié ! Colle-le dans un message"); }
+  catch(e){ const ta=document.getElementById("export-text"); ta.removeAttribute("readonly"); ta.focus(); ta.select(); toast("Sélectionne puis copie"); }
 };
 
-/* ---------- Effacer aujourd'hui ---------- */
+/* ================= Effacer aujourd'hui ================= */
 document.getElementById("btn-reset").onclick=()=>{
-  if(!confirm("Effacer les series enregistrees AUJOURD'HUI (toutes seances) ? L'historique des jours precedents est garde.")) return;
+  if(!confirm("Effacer les séries enregistrées AUJOURD'HUI (toutes séances) ? L'historique des jours précédents est gardé.")) return;
   const t=todayStr(); let n=0;
-  Object.keys(DB).forEach(id=>{
-    const h=DB[id];
-    if(h.length && h[h.length-1].date===t){ h.pop(); n++; if(!h.length) delete DB[id]; }
-  });
-  saveDB(DB); toast(n+" exercice(s) remis a zero"); renderSession();
+  Object.keys(DB).forEach(id=>{ const h=DB[id]; if(h.length && h[h.length-1].date===t){ h.pop(); n++; if(!h.length) delete DB[id]; } });
+  saveDB(); prAnnounced={}; toast(n+" exercice(s) remis à zéro"); renderSession();
 };
 
-/* ---------- Toast ---------- */
+/* ================= Toast ================= */
 let toastT=null;
-function toast(msg){
-  const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show");
-  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),1600);
-}
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),1700); }
 
-/* ---------- Init + service worker (offline) ---------- */
+/* ================= Init + service worker ================= */
 renderTabs(); renderSession();
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
-}
+if("serviceWorker" in navigator){ window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 </script>
 </body>
 </html>
