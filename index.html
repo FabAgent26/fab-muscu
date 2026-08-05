@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="1.8";
+const APP_VERSION="1.9";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -552,22 +552,43 @@ function importData(text){
     DB[exId].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0)); if(!DB[exId].length) delete DB[exId]; }); saveDB(); }
   toast(n+" élément(s) importé(s)"); currentTab=0; renderTabs(); renderSession();
 }
+function trendArrow(exId){
+  const h=DB[exId]||[]; if(h.length<2) return "";
+  const a=entryScore(h[h.length-1]), b=entryScore(h[h.length-2]);
+  if(!a||!b||a.type!==b.type) return "";
+  if(a.val>b.val) return " <span style='color:var(--green)'>&#8599;</span>";
+  if(a.val<b.val) return " <span style='color:#c25'>&#8600;</span>";
+  return " <span style='color:var(--muted)'>&#8594;</span>";
+}
 function renderHome(){
   document.getElementById("subtitle").textContent="Programme Cédric";
   mainEl.innerHTML="";
   const g=document.createElement("div"); g.className="card"; g.style.cssText="background:var(--green);color:#fff;border:none";
   g.innerHTML=`<div style="font-size:20px;font-weight:700">Salut Fanny</div><div style="opacity:.85;font-size:13px;margin-top:2px">${frDateLong(todayStr())}</div>`;
   mainEl.appendChild(g);
-  const nk=nextSession(); const nt=PROGRAM.find(s=>s.key===nk); const last=lastSessionDate(nk);
+  // Prochaine séance + surcharge progressive (dernière perf à battre)
+  const nk=nextSession(); const nt=PROGRAM.find(s=>s.key===nk); const lastD=lastSessionDate(nk);
   const ns=document.createElement("div"); ns.className="card";
-  ns.innerHTML=`<div class="ex-target">Ta prochaine séance</div><div class="ex-name" style="font-size:20px;margin:2px 0">${nt.label} — ${nt.focus}</div><div class="ex-target">${last?("dernière fois "+daysAgo(last)):"jamais faite"}</div>`;
-  const btn=document.createElement("button"); btn.className="save"; btn.style.cssText="width:100%;margin-top:10px;font-size:16px;padding:14px"; btn.textContent="Commencer "+nt.label; btn.onclick=()=>goTab(nk);
-  ns.appendChild(btn); mainEl.appendChild(ns);
+  ns.innerHTML=`<div class="ex-target">Ta prochaine séance</div><div class="ex-name" style="font-size:20px;margin:2px 0">${nt.label} — ${nt.focus}</div><div class="ex-target">${lastD?("dernière fois "+daysAgo(lastD)):"jamais faite"}</div>`;
+  const btn=document.createElement("button"); btn.className="save"; btn.style.cssText="width:100%;margin:10px 0;font-size:16px;padding:14px"; btn.textContent="Commencer "+nt.label; btn.onclick=()=>goTab(nk);
+  ns.appendChild(btn);
+  const sub=document.createElement("div"); sub.className="ex-target"; sub.style.marginBottom="4px"; sub.textContent="Dernière fois (à battre pour progresser) :"; ns.appendChild(sub);
+  nt.ex.forEach(e=>{
+    const h=DB[e.id]||[]; const last=h.length?h[h.length-1]:null;
+    const line=document.createElement("div"); line.className="last"; line.style.cssText="display:flex;justify-content:space-between;gap:8px";
+    line.innerHTML=`<span>${e.name}</span><b>${last?(summarizeSets(last)+trendArrow(e.id)):("conseillé "+e.hint)}</b>`;
+    ns.appendChild(line);
+  });
+  mainEl.appendChild(ns);
+  // Cette semaine (adhérence)
   const mon=weekMonday(todayStr()), end=addDaysIso(mon,6);
-  const done=new Set(); Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.date>=mon&&en.date<=end&&en.session) done.add(en.session); }));
+  const done=new Set(); Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.date>=mon&&en.date<=end&&en.session) done.add(en.session); })); LOGGEDS.forEach(s=>{ if(s.date>=mon&&s.date<=end) done.add(s.session); });
   const wk=document.createElement("div"); wk.className="card"; wk.style.cursor="pointer"; wk.onclick=()=>goTab("BILAN");
-  wk.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="ex-name" style="font-size:15px">Cette semaine</span><b style="color:var(--green);font-size:18px">${done.size} / ${PROGRAM.length}</b></div><div class="ex-target">séances faites · voir le bilan</div>`;
+  wk.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="ex-name" style="font-size:15px">Cette semaine</span><b style="color:var(--green);font-size:18px">${PROGRAM.filter(s=>done.has(s.key)).length} / ${PROGRAM.length}</b></div>`;
+  PROGRAM.forEach(s=>{ const ok=done.has(s.key); const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${s.label}</span><b style="color:${ok?'var(--green)':'var(--muted)'}">${ok?'✓ faite':'à faire'}</b>`; wk.appendChild(r); });
+  const wh=document.createElement("div"); wh.className="ex-target"; wh.style.marginTop="6px"; wh.textContent="Voir le bilan détaillé"; wk.appendChild(wh);
   mainEl.appendChild(wk);
+  // Poids
   const rows=pmRows(); const actuel=rows.length?rows[rows.length-1].poids:BW_START; const totalPerdu=+(BW_START-actuel).toFixed(1); const reste=+(actuel-BW_GOAL).toFixed(1);
   const pw=document.createElement("div"); pw.className="card"; pw.style.cursor="pointer"; pw.onclick=()=>goTab("POIDS");
   pw.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:4px">Poids</div>
@@ -575,8 +596,6 @@ function renderHome(){
     <div class="last" style="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"><span>Total perdu</span><b>−${totalPerdu} kg</b></div>
     <div class="last" style="display:flex;justify-content:space-between"><span>Reste (obj. ${BW_GOAL})</span><b>${reste>0?reste+" kg":"atteint !"}</b></div>`;
   mainEl.appendChild(pw);
-  const lr=latestRecord();
-  if(lr){ const rc=document.createElement("div"); rc.className="card"; rc.innerHTML=`<div class="ex-name" style="font-size:15px">Ton dernier record</div><div class="last" style="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"><span>${EX_NAME[lr.exId]||lr.exId}</span><b>${withLb(lr.exId, lr.sc)}</b></div>`; mainEl.appendChild(rc); }
   const imp=document.createElement("div"); imp.className="card";
   imp.innerHTML=`<div class="ex-name" style="font-size:14px">Importer des données</div><div class="ex-target" style="margin-bottom:6px">Colle le code fourni par Claude (mensurations, séances passées) puis Importer.</div>`;
   const ta=document.createElement("textarea"); ta.className="note"; ta.placeholder='{ "meas": [...], "db": {...} }';
@@ -909,7 +928,7 @@ function renderBilan(){
   LOGGEDS.forEach(s=>{ if(s.date>=mon && s.date<=end) doneSess.add(s.session); });
   const adh=document.createElement("div"); adh.className="card";
   adh.innerHTML=`<div class="ex-name" style="font-size:15px">Adhérence</div><div class="ex-target" style="margin-bottom:6px">${doneSess.size} / ${PROGRAM.length} séances faites cette semaine</div>`;
-  PROGRAM.forEach(s=>{ const ok=doneSess.has(s.key); const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${s.label}</span><b style="color:${ok?"var(--green)":"#c25"}">${ok?"✓ faite":"✗ manquée"}</b>`; adh.appendChild(r); });
+  PROGRAM.forEach(s=>{ const ok=doneSess.has(s.key); const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${s.label}</span><b style="color:${ok?"var(--green)":"var(--muted)"}">${ok?"✓ faite":"à faire"}</b>`; adh.appendChild(r); });
   mainEl.appendChild(adh);
 
   // Records de la semaine
