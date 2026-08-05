@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="1.7";
+const APP_VERSION="1.8";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -176,7 +176,7 @@ const PROGRAM = [
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
       {id:"tirage_vertical", name:"Tirage vertical", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"kg", rest:"60s"},
-      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
+      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"plaq", rest:"60s"},
       {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
       {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
@@ -328,6 +328,13 @@ function summarizeSets(entry){
 /* score en kg (pour progrès/records) ; si pas de poids -> reps */
 function entryScore(entry){
   const unit=entry.unit||"kg";
+  const isTime = v => /\d\s*s/i.test(String(v==null?"":v));
+  if(unit==="pdc"){
+    let bestVal=null, bestRaw=null;
+    (entry.sets||[]).forEach(s=>{ const n=parseNum(s.r); if(n!=null && (bestVal==null||n>bestVal)){ bestVal=n; bestRaw=String(s.r); } });
+    if(bestVal==null) return null;
+    return {val:bestVal, type:"reps", label:(isTime(bestRaw)?bestRaw:(bestVal+" rép"))+" (PDC)"};
+  }
   if(unit==="plaq"){
     let best=null,bestReps=null,bestR=null;
     (entry.sets||[]).forEach(s=>{ const w=parseNum(s.w), r=parseNum(s.r); if(w!=null&&(best==null||w>best)){ best=w; bestReps=r; } if(r!=null&&(bestR==null||r>bestR)) bestR=r; });
@@ -338,7 +345,7 @@ function entryScore(entry){
   let bestKg=null,bestReps=null,bestR=null;
   (entry.sets||[]).forEach(s=>{
     const w=parseNum(s.w), r=parseNum(s.r);
-    if(w!=null && unit!=="pdc"){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
+    if(w!=null){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
     if(r!=null && (bestR==null||r>bestR)) bestR=r;
   });
   if(bestKg!=null) return {val:bestKg,type:"kg",label:fmtKg(bestKg)+" kg"+(bestReps!=null?(" × "+bestReps+" rép"):"")};
