@@ -419,12 +419,16 @@ function exerciseCard(e, sess){
     </div>`;
   card.appendChild(head);
   {
-    const uwrap=document.createElement("div"); uwrap.style.cssText="margin-top:8px;display:flex;align-items:center;gap:8px";
-    uwrap.innerHTML=`<span class="ex-target">Unité :</span>`;
-    const sel=document.createElement("select"); sel.className="unit-sel";
-    [["kg","kg"],["lb","lb"],["plaq","plaquette (n°)"],["pdc","poids du corps"]].forEach(([v,lab])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lab; if(v===unit)o.selected=true; sel.appendChild(o); });
-    sel.onchange=()=>{ UNITS[e.id]=sel.value; saveUnits(); const te=todayEntryOf(e.id,sess); if(te){ te.unit=sel.value; saveDB(); } renderSession(); };
-    uwrap.appendChild(sel); card.appendChild(uwrap);
+    const uwrap=document.createElement("div"); uwrap.style.cssText="margin-top:8px";
+    uwrap.innerHTML=`<div class="ex-target" style="margin-bottom:4px">Unité : kg · lb · PL (plaquette) · PDC (poids du corps)</div>`;
+    const seg=document.createElement("div"); seg.style.cssText="display:flex;gap:6px";
+    [["kg","kg"],["lb","lb"],["plaq","PL"],["pdc","PDC"]].forEach(([v,lab])=>{
+      const b=document.createElement("button"); b.textContent=lab;
+      b.style.cssText="flex:1;padding:10px 0;border-radius:9px;font-size:14px;font-weight:700;border:1px solid var(--line);"+(v===unit?"background:var(--green);color:#fff;border-color:var(--green)":"background:#fff;color:var(--ink)");
+      b.onclick=()=>{ UNITS[e.id]=v; saveUnits(); const te=todayEntryOf(e.id,sess); if(te){ te.unit=v; saveDB(); } renderSession(); };
+      seg.appendChild(b);
+    });
+    uwrap.appendChild(seg); card.appendChild(uwrap);
   }
 
   if(e.cue){ const c=document.createElement("div"); c.className="cue"; c.textContent="Rappel : "+e.cue; card.appendChild(c); }
@@ -524,6 +528,7 @@ function latestRecord(){ let out=null,outDate="0000-00-00";
 function importData(text){
   let obj; try{ obj=JSON.parse(text); }catch(e){ toast("Code invalide"); return; }
   let n=0;
+  if(Array.isArray(obj.clear)){ obj.clear.forEach(exId=>{ if(DB[exId]){ delete DB[exId]; n++; } }); saveDB(); }
   if(Array.isArray(obj.meas)){ obj.meas.forEach(m=>{ if(!m.date||!m.v) return; MEAS=MEAS.filter(x=>x.date!==m.date); MEAS.push({date:m.date, v:m.v}); n++; }); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); }
   if(Array.isArray(obj.pm)){ obj.pm.forEach(p=>{ if(!p.mois||p.poids==null) return; const ex=PM.find(x=>x.mois===p.mois); if(ex) ex.poids=p.poids; else PM.push({mois:p.mois, poids:p.poids, estime:p.estime}); n++; }); savePM(); }
   if(obj.db && typeof obj.db==="object"){ Object.keys(obj.db).forEach(exId=>{ const arr=obj.db[exId]; if(!Array.isArray(arr)) return; DB[exId]=DB[exId]||[];
@@ -827,6 +832,7 @@ function renderMens(){
   const save=document.createElement("button"); save.className="save"; save.style.marginTop="8px"; save.textContent="Enregistrer mes mensurations";
   save.onclick=()=>{ const v={}; let any=false; MEAS_FIELDS.forEach(f=>{ const val=inputs[f.k].value.trim().replace(",","."); if(val && !isNaN(parseFloat(val))){ v[f.k]=val; any=true; } }); if(!any){ toast("Rien à enregistrer"); return; } const t=todayStr(); const ex=MEAS.find(x=>x.date===t); if(ex)ex.v=v; else MEAS.push({date:t,v}); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); toast("Mensurations enregistrées"); renderMens(); };
   form.appendChild(save); mainEl.appendChild(form);
+  if(!MEAS.length){ const h=document.createElement("div"); h.className="hint"; h.textContent="Ton historique et tes courbes apparaîtront ici après ta première mesure (ou après un import de données)."; mainEl.appendChild(h); }
   if(MEAS.length){
     const ch=document.createElement("div"); ch.className="card";
     const sel=document.createElement("select"); sel.className="unit-sel"; sel.style.cssText="width:100%;padding:11px;margin-bottom:10px";
