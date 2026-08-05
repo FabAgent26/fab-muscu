@@ -191,15 +191,50 @@ const TABS = PROGRAM.concat([
   {key:"JOURNAL", label:"Journal", journal:true},
   {key:"PROGRES", label:"Progrès", progres:true},
   {key:"POIDS",   label:"Poids",   poids:true},
+  {key:"MENS",    label:"Mensurations", mens:true},
 ]);
+
+/* Muscle principal par exercice (pour le calcul séries/muscle/semaine) */
+const MUSCLE={
+  tirage_dos_assis:["Dos"], dev_epaules_arnold:["Épaules"], pompes_inclinees:["Pectoraux"],
+  face_pull:["Épaules"], triceps_corde:["Triceps"], hip_thrust_barre:["Fessiers"],
+  bulgarian_split_squat:["Fessiers"], bstance_rdl:["Ischios"], abduction_hanche:["Fessiers"],
+  gainage_mains:["Gainage"], tirage_vertical:["Dos"], low_row_uni:["Dos"], dev_couche:["Pectoraux"],
+  elevations_laterales:["Épaules"], prone_ytw:["Dos"], hip_thrust_uni:["Fessiers"],
+};
+const MUSCLE_ORDER=["Fessiers","Ischios","Dos","Épaules","Pectoraux","Triceps","Gainage"];
+
+/* Mensurations (cm) */
+const MEAS_FIELDS=[
+  {k:"poitrine",label:"Tour de poitrine"},
+  {k:"epaule",label:"Tour d'épaule"},
+  {k:"bras_g",label:"Bras gauche"},
+  {k:"bras_d",label:"Bras droit"},
+  {k:"taille",label:"Tour de taille"},
+  {k:"hanche",label:"Tour de hanche"},
+  {k:"cuisse_g",label:"Cuisse gauche"},
+  {k:"cuisse_d",label:"Cuisse droite"},
+  {k:"mollet_g",label:"Mollet gauche"},
+  {k:"mollet_d",label:"Mollet droit"},
+];
 
 /* ================= Poids de corps : objectif aligné sur FAB Agent ================= */
 const BW_START=71.5, BW_GOAL=63;
-const BW_STEPS=[
-  {label:"Mai 2026 — vêtements changent", kg:69.5},
-  {label:"Juillet 2026 — les autres remarquent", kg:67},
-  {label:"Sept 2026 — lean visible", kg:65},
-  {label:"Nov 2026 — objectif", kg:63},
+/* Suivi mensuel du poids (repris de FAB Agent, départ 71,5 début mars) */
+const PM_KEY="muscu_fanny_poids_mensuel_v1";
+const PM_DEFAULT=[
+  {mois:"Début mars", poids:71.5},
+  {mois:"23 mars", poids:69.9},
+  {mois:"Avril", poids:69.5, estime:true},
+  {mois:"Mai", poids:69.2, estime:true},
+  {mois:"Juin", poids:68.5},
+  {mois:"Juillet", poids:67.0},
+];
+const PM_PROJ=[
+  {mois:"Août (objectif)", poids:65.8},
+  {mois:"Septembre", poids:64.6},
+  {mois:"Octobre", poids:63.4},
+  {mois:"Novembre (objectif)", poids:63.0},
 ];
 
 /* ================= Stockage ================= */
@@ -223,6 +258,26 @@ const BW_KEY="muscu_fanny_bw_v1";
 function loadBW(){ try{ return JSON.parse(localStorage.getItem(BW_KEY))||[]; }catch(e){ return []; } }
 function saveBW(){ localStorage.setItem(BW_KEY, JSON.stringify(BW)); }
 let BW=loadBW();
+
+const MEAS_KEY="muscu_fanny_mens_v1";
+function loadMeas(){ try{ return JSON.parse(localStorage.getItem(MEAS_KEY))||[]; }catch(e){ return []; } }
+function saveMeas(){ localStorage.setItem(MEAS_KEY, JSON.stringify(MEAS)); }
+let MEAS=loadMeas();
+
+function loadPM(){ try{ const s=localStorage.getItem(PM_KEY); return s?JSON.parse(s):JSON.parse(JSON.stringify(PM_DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(PM_DEFAULT)); } }
+function savePM(){ localStorage.setItem(PM_KEY, JSON.stringify(PM)); }
+let PM=loadPM();
+
+function isoOf(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function addDaysIso(iso,n){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return isoOf(d); }
+function weekMonday(iso){ const d=new Date(iso+"T00:00:00"); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return isoOf(d); }
+function weekSets(mondayIso){
+  const end=addDaysIso(mondayIso,6); const c={}; MUSCLE_ORDER.forEach(m=>c[m]=0);
+  Object.keys(DB).forEach(exId=>{ const ms=MUSCLE[exId]; if(!ms) return;
+    (DB[exId]||[]).forEach(en=>{ if(en.date>=mondayIso && en.date<=end){ const n=(en.sets||[]).length; ms.forEach(m=>{ c[m]=(c[m]||0)+n; }); } });
+  });
+  return c;
+}
 
 /* Migration : les anciennes entrées sans unité prennent l'unité par défaut de l'exo. */
 (function migrate(){
@@ -274,9 +329,16 @@ function bestScoreBefore(exId, beforeIdx){
   return best;
 }
 function bestScoreEver(exId){
-  const h=DB[exId]||[]; let best=null,lbl="";
-  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null||sc.val>best)){ best=sc.val; lbl=sc.label; } });
-  return best==null?null:{val:best,label:lbl};
+  const h=DB[exId]||[]; let best=null;
+  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null||sc.val>best.val)) best=sc; });
+  return best;
+}
+/* Affiche un score en kg, avec l'équivalent lb entre parenthèses si l'exo est en lb. */
+function withLb(exId, sc){
+  if(!sc) return "-";
+  if(sc.type==="reps") return sc.label;
+  if(unitOf(exId)==="lb") return sc.label.replace(/^(\S+ kg)/, "$1 ("+lbFromKg(sc.val)+" lb)");
+  return sc.label;
 }
 function todayEntryOf(exId, sess){
   const h=DB[exId]||[]; if(!h.length) return null;
@@ -311,6 +373,7 @@ function renderSession(){
   if(t.journal){ renderJournal(); return; }
   if(t.progres){ renderProgres(); return; }
   if(t.poids){ renderPoids(); return; }
+  if(t.mens){ renderMens(); return; }
   document.getElementById("subtitle").textContent=t.label+" - "+t.focus;
   mainEl.innerHTML="";
   const warm=document.createElement("div"); warm.className="warm";
@@ -355,7 +418,7 @@ function exerciseCard(e, sess){
                            : "<b>Dernière fois</b> : jamais fait. Note ce que tu fais aujourd'hui.";
   card.appendChild(lastEl);
   const rec=bestScoreEver(e.id);
-  if(rec){ const r=document.createElement("div"); r.className="last"; r.style.background="#eef6ef"; r.style.color="var(--green)"; r.innerHTML=`<b>Record</b> : ${rec.label}`; card.appendChild(r); }
+  if(rec){ const r=document.createElement("div"); r.className="last"; r.style.background="#eef6ef"; r.style.color="var(--green)"; r.innerHTML=`<b>Record</b> : ${withLb(e.id, rec)}`; card.appendChild(r); }
 
   // lignes de séries
   const setsWrap=document.createElement("div"); setsWrap.className="sets"; card.appendChild(setsWrap);
@@ -396,7 +459,7 @@ function exerciseCard(e, sess){
       if(nowDone){
         const te=todayEntryOf(e.id,sess);
         if(te){ const sc=entryScore(te); const prevBest=bestScoreBefore(e.id, (DB[e.id]||[]).length-1);
-          if(sc && (prevBest==null || sc.val>prevBest) && (DB[e.id]||[]).length>1 && !prAnnounced[e.id]){ prAnnounced[e.id]=true; toast("Nouveau record : "+sc.label+" !"); }
+          if(sc && (prevBest==null || sc.val>prevBest) && (DB[e.id]||[]).length>1 && !prAnnounced[e.id]){ prAnnounced[e.id]=true; toast("Nouveau record : "+withLb(e.id, sc)+" !"); }
           else toast("Série validée"); }
       } else toast("Série retirée");
       renderSession();
@@ -575,12 +638,33 @@ function lineChart(points, opts){
 }
 
 /* ================= Onglet Progrès ================= */
-let progresEx=null;
+let progresEx=null, weekCursor=null;
+function muscleWeekCard(){
+  if(!weekCursor) weekCursor=weekMonday(todayStr());
+  const card=document.createElement("div"); card.className="card";
+  const nav=document.createElement("div"); nav.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+  nav.innerHTML=`<button class="addset" id="wp">‹</button><div style="text-align:center"><div class="ex-name" style="font-size:15px">Séries par muscle</div><div class="ex-target">semaine du ${frShort(weekCursor)}</div></div><button class="addset" id="wn">›</button>`;
+  card.appendChild(nav);
+  nav.querySelector("#wp").onclick=()=>{ weekCursor=addDaysIso(weekCursor,-7); renderProgres(); };
+  nav.querySelector("#wn").onclick=()=>{ weekCursor=addDaysIso(weekCursor,7); renderProgres(); };
+  const counts=weekSets(weekCursor);
+  const total=MUSCLE_ORDER.reduce((a,m)=>a+(counts[m]||0),0);
+  if(!total){ const d=document.createElement("div"); d.className="last"; d.textContent="Aucune série validée cette semaine."; card.appendChild(d); return card; }
+  const max=Math.max(1,...MUSCLE_ORDER.map(m=>counts[m]||0));
+  MUSCLE_ORDER.forEach(m=>{ const c=counts[m]||0; const row=document.createElement("div"); row.style.cssText="margin:7px 0";
+    row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${m}</span><b>${c}</b></div>
+      <div style="height:8px;background:#eef0ee;border-radius:5px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(c/max*100)}%;background:var(--green)"></div></div>`;
+    card.appendChild(row);
+  });
+  const tot=document.createElement("div"); tot.className="ex-target"; tot.style.marginTop="8px"; tot.textContent="Total : "+total+" séries cette semaine"; card.appendChild(tot);
+  return card;
+}
 function renderProgres(){
-  document.getElementById("subtitle").textContent="Progrès - ta charge dans le temps (en kg)";
+  document.getElementById("subtitle").textContent="Progrès - séries/muscle & charges";
   mainEl.innerHTML="";
+  mainEl.appendChild(muscleWeekCard());
   const ids=Object.keys(DB).filter(id=>DB[id]&&DB[id].length);
-  if(!ids.length){ const d=document.createElement("div"); d.className="warm"; d.textContent="Fais quelques séances et tu verras ici tes courbes de progression et tes records."; mainEl.appendChild(d); return; }
+  if(!ids.length){ const d=document.createElement("div"); d.className="warm"; d.textContent="Fais quelques séances pour voir tes courbes de progression et tes records."; mainEl.appendChild(d); return; }
   const ordered=[]; PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); })); ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
   if(!progresEx || !ordered.includes(progresEx)) progresEx=ordered[0];
   const card=document.createElement("div"); card.className="card";
@@ -592,37 +676,102 @@ function renderProgres(){
   const chart=document.createElement("div"); chart.innerHTML=lineChart(pts,{}); card.appendChild(chart);
   const rec=bestScoreEver(progresEx); const le=(DB[progresEx]||[]).slice(-1)[0]; const lsc=le?entryScore(le):null;
   const info=document.createElement("div"); info.className="last"; info.style.marginTop="10px";
-  info.innerHTML=`<b>Record</b> : ${rec?rec.label:"-"} &nbsp;·&nbsp; <b>Dernière</b> : ${lsc?lsc.label:"-"} &nbsp;·&nbsp; ${pts.length} séance(s)`;
+  info.innerHTML=`<b>Record</b> : ${withLb(progresEx,rec)} &nbsp;·&nbsp; <b>Dernière</b> : ${withLb(progresEx,lsc)} &nbsp;·&nbsp; ${pts.length} séance(s)`;
   card.appendChild(info); mainEl.appendChild(card);
   const rc=document.createElement("div"); rc.className="card";
   rc.innerHTML=`<div class="ex-name" style="font-size:15px">Tes records</div>`;
-  ordered.forEach(id=>{ const r=bestScoreEver(id); if(!r) return; const row=document.createElement("div"); row.className="last"; row.style.cssText="display:flex;justify-content:space-between"; row.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:var(--green)">${r.label}</b>`; rc.appendChild(row); });
+  ordered.forEach(id=>{ const r=bestScoreEver(id); if(!r) return; const row=document.createElement("div"); row.className="last"; row.style.cssText="display:flex;justify-content:space-between"; row.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:var(--green)">${withLb(id,r)}</b>`; rc.appendChild(row); });
   mainEl.appendChild(rc);
 }
 
 /* ================= Onglet Poids de corps ================= */
+function pmRows(){
+  let prev=0;
+  return PM.map(r=>{ const cumul=+(r.poids-BW_START).toFixed(1); const perte=+(cumul-prev).toFixed(1); prev=cumul; return {mois:r.mois, poids:r.poids, estime:r.estime, cumul, perte}; });
+}
 function renderPoids(){
-  document.getElementById("subtitle").textContent="Poids de corps - objectif "+BW_GOAL+" kg";
+  document.getElementById("subtitle").textContent="Poids - suivi mensuel (objectif "+BW_GOAL+" kg)";
   mainEl.innerHTML="";
-  const add=document.createElement("div"); add.className="card";
-  add.innerHTML=`<div class="ex-name" style="font-size:15px">Noter mon poids aujourd'hui</div>`;
-  const row=document.createElement("div"); row.className="setrow"; row.style.marginTop="8px";
-  row.innerHTML=`<div class="field"><label>Poids (kg)</label><input type="text" inputmode="decimal" id="bw-in" placeholder="ex : 68.5"></div>`;
-  const b=document.createElement("button"); b.className="save"; b.style.maxWidth="120px"; b.textContent="Enregistrer";
-  row.appendChild(b); add.appendChild(row); mainEl.appendChild(add);
-  b.onclick=()=>{ const v=document.getElementById("bw-in").value.trim().replace(",","."); if(!v||isNaN(parseFloat(v))){ toast("Entre un poids valide"); return; } const t=todayStr(); const ex=BW.find(x=>x.date===t); if(ex)ex.kg=v; else BW.push({date:t,kg:v}); BW.sort((a,b)=>a.date<b.date?-1:1); saveBW(); toast("Poids enregistré"); renderPoids(); };
-  const pts=BW.map(x=>({x:frShort(x.date), y:parseFloat(String(x.kg).replace(",","."))})).filter(p=>!isNaN(p.y));
+  const rows=pmRows();
+  const actuel = rows.length?rows[rows.length-1].poids:BW_START;
+  const totalPerdu=+(BW_START-actuel).toFixed(1);
+  const reste=+(actuel-BW_GOAL).toFixed(1);
+  // Bilan
+  const stat=document.createElement("div"); stat.className="card";
+  stat.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:6px">Bilan</div>
+    <div class="last" style="display:flex;justify-content:space-between"><span>Départ (début mars)</span><b>${BW_START} kg</b></div>
+    <div class="last" style="display:flex;justify-content:space-between"><span>Poids actuel</span><b>${actuel} kg</b></div>
+    <div class="last" style="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"><span>Total perdu</span><b>${totalPerdu>=0?"−"+totalPerdu:"+"+(-totalPerdu)} kg</b></div>
+    <div class="last" style="display:flex;justify-content:space-between"><span>Reste à perdre (obj. ${BW_GOAL})</span><b>${reste>0?reste+" kg":"atteint !"}</b></div>`;
+  mainEl.appendChild(stat);
+  // Courbe
+  const pts=rows.map(r=>({x:r.mois.replace(/\(.*\)/,"").trim(), y:r.poids}));
   const ch=document.createElement("div"); ch.className="card";
   ch.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:8px">Ta courbe</div>`+
     lineChart(pts,{yMin:BW_GOAL-1, yMax:BW_START+0.5, lines:[{y:BW_GOAL,label:"objectif "+BW_GOAL,color:"#3a7d44"}]});
   mainEl.appendChild(ch);
-  const st=document.createElement("div"); st.className="card"; st.innerHTML=`<div class="ex-name" style="font-size:15px">Étapes (départ ${BW_START} kg)</div>`;
-  const cur=pts.length?pts[pts.length-1].y:null;
-  BW_STEPS.forEach(s=>{ const done=cur!=null && cur<=s.kg; const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span style="color:${done?"var(--green)":"var(--muted)"}">${done?"✓ ":""}${s.label}</span><b>${s.kg} kg</b>`; st.appendChild(r); });
-  mainEl.appendChild(st);
-  if(BW.length){ const hist=document.createElement("div"); hist.className="card"; hist.innerHTML=`<div class="ex-name" style="font-size:15px">Historique</div>`;
-    [...BW].reverse().forEach(x=>{ const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between;align-items:center"; r.innerHTML=`<span>${frDate(x.date)}</span><span><b>${x.kg} kg</b> <button class="rm" style="font-size:18px">×</button></span>`; r.querySelector(".rm").onclick=()=>{ if(confirm("Supprimer cette pesée ?")){ BW=BW.filter(y=>y.date!==x.date); saveBW(); renderPoids(); } }; hist.appendChild(r); });
-    mainEl.appendChild(hist); }
+  // Tableau mensuel
+  const tbl=document.createElement("div"); tbl.className="card";
+  tbl.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:6px">Suivi mensuel</div>`;
+  const GRID="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:4px;align-items:center";
+  const hd=document.createElement("div"); hd.style.cssText=GRID+";font-size:11px;color:var(--muted);font-weight:700;padding:4px 0;border-bottom:1px solid var(--line)";
+  hd.innerHTML=`<span>Mois</span><span style="text-align:right">Poids</span><span style="text-align:right">Mois</span><span style="text-align:right">Cumul</span>`;
+  tbl.appendChild(hd);
+  rows.forEach((r,i)=>{ const row=document.createElement("div"); row.style.cssText=GRID+";font-size:13px;padding:7px 0;border-bottom:1px solid #f0efed";
+    const pM=r.perte<0?String(r.perte):(r.perte>0?"+"+r.perte:"–");
+    const cM=r.cumul<0?String(r.cumul):(r.cumul>0?"+"+r.cumul:"0");
+    row.innerHTML=`<span>${r.mois}${r.estime?" *":""}</span><span style="text-align:right"><b>${r.poids}</b></span><span style="text-align:right;color:${r.perte<0?"var(--green)":"var(--muted)"}">${pM}</span><span style="text-align:right">${cM}</span>`;
+    row.onclick=()=>{ if(confirm("Supprimer la ligne « "+r.mois+" » ?")){ PM.splice(i,1); savePM(); renderPoids(); } };
+    tbl.appendChild(row);
+  });
+  const leg=document.createElement("div"); leg.className="ex-target"; leg.style.marginTop="6px"; leg.textContent="* = estimé · perte vs mois précédent · cumul vs départ "+BW_START+" · tape une ligne pour la supprimer.";
+  tbl.appendChild(leg); mainEl.appendChild(tbl);
+  // Projection
+  const pj=document.createElement("div"); pj.className="card"; pj.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:6px">Projection</div>`;
+  let pv=actuel;
+  PM_PROJ.forEach(r=>{ const perte=+(r.poids-pv).toFixed(1); pv=r.poids; const row=document.createElement("div"); row.className="last"; row.style.cssText="display:flex;justify-content:space-between"; row.innerHTML=`<span>${r.mois}</span><b>${r.poids} kg <span style="color:var(--muted);font-weight:400">(${perte<0?perte:"+"+perte})</span></b>`; pj.appendChild(row); });
+  mainEl.appendChild(pj);
+  // Ajouter une pesée
+  const add=document.createElement("div"); add.className="card"; add.innerHTML=`<div class="ex-name" style="font-size:15px">Ajouter une pesée</div>`;
+  const rowa=document.createElement("div"); rowa.style.cssText="display:flex;gap:8px;margin-top:8px;align-items:flex-end";
+  rowa.innerHTML=`<div class="field"><label>Mois / date</label><input type="text" id="pm-mois" placeholder="ex : Août"></div><div class="field"><label>Poids (kg)</label><input type="text" inputmode="decimal" id="pm-poids" placeholder="ex : 66.5"></div>`;
+  const b=document.createElement("button"); b.className="save"; b.textContent="Ajouter"; rowa.appendChild(b); add.appendChild(rowa); mainEl.appendChild(add);
+  b.onclick=()=>{ const mois=document.getElementById("pm-mois").value.trim(); const p=document.getElementById("pm-poids").value.trim().replace(",","."); if(!mois||isNaN(parseFloat(p))){ toast("Renseigne le mois et un poids valide"); return; } PM.push({mois, poids:parseFloat(p)}); savePM(); toast("Pesée ajoutée"); renderPoids(); };
+}
+
+/* ================= Onglet Mensurations ================= */
+let mensChartField="poitrine";
+function renderMens(){
+  document.getElementById("subtitle").textContent="Mensurations (cm)";
+  mainEl.innerHTML="";
+  const last=MEAS.length?MEAS[MEAS.length-1]:null;
+  const form=document.createElement("div"); form.className="card";
+  form.innerHTML=`<div class="ex-name" style="font-size:15px">Mes mesures d'aujourd'hui (cm)</div><div class="ex-target" style="margin-bottom:8px">Pré-rempli avec ta dernière prise. Laisse vide ce que tu ne mesures pas.</div>`;
+  const inputs={};
+  MEAS_FIELDS.forEach(f=>{ const r=document.createElement("div"); r.style.cssText="display:flex;align-items:center;gap:10px;margin:5px 0";
+    r.innerHTML=`<label style="flex:1;font-size:14px">${f.label}</label>`;
+    const inp=document.createElement("input"); inp.type="text"; inp.inputMode="decimal"; inp.placeholder="cm"; inp.style.cssText="width:90px;flex:0 0 auto";
+    if(last && last.v[f.k]!=null) inp.value=last.v[f.k];
+    inputs[f.k]=inp; r.appendChild(inp); form.appendChild(r);
+  });
+  const save=document.createElement("button"); save.className="save"; save.style.marginTop="8px"; save.textContent="Enregistrer mes mensurations";
+  save.onclick=()=>{ const v={}; let any=false; MEAS_FIELDS.forEach(f=>{ const val=inputs[f.k].value.trim().replace(",","."); if(val && !isNaN(parseFloat(val))){ v[f.k]=val; any=true; } }); if(!any){ toast("Rien à enregistrer"); return; } const t=todayStr(); const ex=MEAS.find(x=>x.date===t); if(ex)ex.v=v; else MEAS.push({date:t,v}); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); toast("Mensurations enregistrées"); renderMens(); };
+  form.appendChild(save); mainEl.appendChild(form);
+  if(MEAS.length){
+    const ch=document.createElement("div"); ch.className="card";
+    const sel=document.createElement("select"); sel.className="unit-sel"; sel.style.cssText="width:100%;padding:11px;margin-bottom:10px";
+    MEAS_FIELDS.forEach(f=>{ const o=document.createElement("option"); o.value=f.k; o.textContent=f.label; if(f.k===mensChartField)o.selected=true; sel.appendChild(o); });
+    sel.onchange=()=>{ mensChartField=sel.value; renderMens(); };
+    ch.appendChild(sel);
+    const pts=MEAS.filter(x=>x.v[mensChartField]!=null).map(x=>({x:frShort(x.date), y:parseFloat(String(x.v[mensChartField]).replace(",","."))})).filter(p=>!isNaN(p.y));
+    const c=document.createElement("div"); c.innerHTML=lineChart(pts,{}); ch.appendChild(c); mainEl.appendChild(ch);
+    const hist=document.createElement("div"); hist.className="card"; hist.innerHTML=`<div class="ex-name" style="font-size:15px">Historique</div>`;
+    [...MEAS].reverse().forEach(x=>{ const parts=MEAS_FIELDS.filter(f=>x.v[f.k]!=null).map(f=>f.label.replace("Tour de ","").replace("Tour d'","")+" "+x.v[f.k]);
+      const r=document.createElement("div"); r.className="last"; r.innerHTML=`<div style="display:flex;justify-content:space-between"><b>${frDate(x.date)}</b><button class="rm" style="font-size:16px">×</button></div><div style="font-size:12px;margin-top:2px">${parts.join(" · ")}</div>`;
+      r.querySelector(".rm").onclick=()=>{ if(confirm("Supprimer cette prise de mensurations ?")){ MEAS=MEAS.filter(y=>y.date!==x.date); saveMeas(); renderMens(); } };
+      hist.appendChild(r); });
+    mainEl.appendChild(hist);
+  }
 }
 
 /* ================= Export coach ================= */
@@ -632,14 +781,21 @@ function buildExport(){
   const ordered=[]; PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); })); ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
   let any=false;
   ordered.forEach(id=>{ const h=DB[id]; if(!h||!h.length) return; any=true; const rec=bestScoreEver(id);
-    out+="* "+(EX_NAME[id]||id)+(rec?"  [record "+rec.label+"]":"")+"\n";
+    out+="* "+(EX_NAME[id]||id)+(rec?"  [record "+withLb(id,rec)+"]":"")+"\n";
     h.slice(-4).forEach(en=>{ out+="   "+frDate(en.date)+" : "+(summarizeSets(en)||"-")+"\n"; });
     out+="\n";
   });
   if(!any) out+="(aucune séance enregistrée pour le moment)\n\n";
+  // séries par muscle cette semaine
+  const wk=weekSets(weekMonday(todayStr())); const tw=MUSCLE_ORDER.reduce((a,m)=>a+(wk[m]||0),0);
+  if(tw){ out+="SÉRIES PAR MUSCLE (cette semaine)\n"; MUSCLE_ORDER.forEach(m=>{ if(wk[m]) out+="   "+m+" : "+wk[m]+"\n"; }); out+="\n"; }
   const nk=Object.keys(NOTES).filter(k=>NOTES[k]).sort().reverse();
   if(nk.length){ out+="RESSENTIS\n"; nk.slice(0,12).forEach(k=>{ const [d,s]=k.split("|"); out+="   "+frDate(d)+" ("+sessionLabel(s)+") : "+NOTES[k]+"\n"; }); out+="\n"; }
-  if(BW.length){ out+="POIDS DE CORPS (objectif "+BW_GOAL+" kg)\n"; [...BW].slice(-8).forEach(x=>{ out+="   "+frDate(x.date)+" : "+x.kg+" kg\n"; }); out+="\n"; }
+  // poids : bilan mensuel
+  { const rows=pmRows(); const actuel=rows.length?rows[rows.length-1].poids:BW_START;
+    out+="POIDS (objectif "+BW_GOAL+" kg)\n   Départ "+BW_START+" · actuel "+actuel+" · perdu "+(+(BW_START-actuel).toFixed(1))+" kg · reste "+(+(actuel-BW_GOAL).toFixed(1))+" kg\n";
+    rows.slice(-6).forEach(r=>{ out+="   "+r.mois+" : "+r.poids+" kg\n"; }); out+="\n"; }
+  if(MEAS.length){ const m=MEAS[MEAS.length-1]; out+="MENSURATIONS ("+frDate(m.date)+", cm)\n"; MEAS_FIELDS.forEach(f=>{ if(m.v[f.k]!=null) out+="   "+f.label+" : "+m.v[f.k]+"\n"; }); out+="\n"; }
   return out.trim();
 }
 const modal=document.getElementById("modal");
