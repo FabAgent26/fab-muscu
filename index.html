@@ -203,6 +203,8 @@ const MUSCLE={
   elevations_laterales:["Épaules"], prone_ytw:["Dos"], hip_thrust_uni:["Fessiers"],
 };
 const MUSCLE_ORDER=["Fessiers","Ischios","Dos","Épaules","Pectoraux","Triceps","Gainage"];
+/* Objectif de séries/semaine par muscle (recommandation, ajustable avec le coach) */
+const MUSCLE_TARGET={Fessiers:16, Ischios:8, Dos:12, "Épaules":10, Pectoraux:8, Triceps:6, Gainage:8};
 
 /* Mensurations (cm) */
 const MEAS_FIELDS=[
@@ -305,6 +307,7 @@ function summarizeSets(entry){
   return (entry.sets||[]).filter(s=>(s.w||s.r)).map(s=>{
     const w=(s.w==null?"":String(s.w)).trim(), r=(s.r==null?"":String(s.r)).trim();
     if(unit==="pdc") return r||w;
+    if(unit==="plaq"){ if(w&&r) return "niv "+w+" × "+r; if(w) return "niv "+w; return r; }
     if(w&&r) return w+" "+unit+" × "+r;
     if(w) return w+" "+unit;
     return r;
@@ -313,6 +316,13 @@ function summarizeSets(entry){
 /* score en kg (pour progrès/records) ; si pas de poids -> reps */
 function entryScore(entry){
   const unit=entry.unit||"kg";
+  if(unit==="plaq"){
+    let best=null,bestReps=null,bestR=null;
+    (entry.sets||[]).forEach(s=>{ const w=parseNum(s.w), r=parseNum(s.r); if(w!=null&&(best==null||w>best)){ best=w; bestReps=r; } if(r!=null&&(bestR==null||r>bestR)) bestR=r; });
+    if(best!=null) return {val:best,type:"plaq",label:"niveau "+best+(bestReps!=null?(" × "+bestReps):"")};
+    if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" reps"};
+    return null;
+  }
   let bestKg=null,bestReps=null,bestR=null;
   (entry.sets||[]).forEach(s=>{
     const w=parseNum(s.w), r=parseNum(s.r);
@@ -336,7 +346,7 @@ function bestScoreEver(exId){
 /* Affiche un score en kg, avec l'équivalent lb entre parenthèses si l'exo est en lb. */
 function withLb(exId, sc){
   if(!sc) return "-";
-  if(sc.type==="reps") return sc.label;
+  if(sc.type!=="kg") return sc.label;
   if(unitOf(exId)==="lb") return sc.label.replace(/^(\S+ kg)/, "$1 ("+lbFromKg(sc.val)+" lb)");
   return sc.label;
 }
@@ -405,7 +415,7 @@ function exerciseCard(e, sess){
     const uwrap=document.createElement("div"); uwrap.style.cssText="margin-top:8px;display:flex;align-items:center;gap:8px";
     uwrap.innerHTML=`<span class="ex-target">Unité :</span>`;
     const sel=document.createElement("select"); sel.className="unit-sel";
-    [["kg","kg"],["lb","lb"],["pdc","poids du corps"]].forEach(([v,lab])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lab; if(v===unit)o.selected=true; sel.appendChild(o); });
+    [["kg","kg"],["lb","lb"],["plaq","plaquette (n°)"],["pdc","poids du corps"]].forEach(([v,lab])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lab; if(v===unit)o.selected=true; sel.appendChild(o); });
     sel.onchange=()=>{ UNITS[e.id]=sel.value; saveUnits(); const te=todayEntryOf(e.id,sess); if(te){ te.unit=sel.value; saveDB(); } renderSession(); };
     uwrap.appendChild(sel); card.appendChild(uwrap);
   }
@@ -427,7 +437,7 @@ function exerciseCard(e, sess){
 
   function suggestVal(i){
     if(prevE && prevE.sets[i]) return {w:prevE.sets[i].w, r:prevE.sets[i].r};
-    if(unit==="pdc") return {w:"", r:e.reps};
+    if(unit==="pdc"||unit==="plaq") return {w:"", r:e.reps};
     if(e.hintKg){ const w = unit==="lb" ? lbFromKg(e.hintKg) : e.hintKg; return {w:String(w), r:e.reps}; }
     return {w:"", r:e.reps};
   }
@@ -446,7 +456,9 @@ function exerciseCard(e, sess){
   function makeRow(val, done){
     const row=document.createElement("div"); row.className="setrow"+(done?" done":"");
     const i=setsWrap.children.length;
-    const wField = unit==="pdc" ? "" : `<div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" placeholder="${unit}" value="${val&&val.w!=null?val.w:""}"></div>`;
+    let wField="";
+    if(unit!=="pdc"){ const wl=unit==="plaq"?"Niveau (n°)":"Poids ("+unit+")"; const wp=unit==="plaq"?"n°":unit;
+      wField=`<div class="field"><label>${wl}</label><input type="text" inputmode="decimal" class="w" placeholder="${wp}" value="${val&&val.w!=null?val.w:""}"></div>`; }
     row.innerHTML=`<div class="n">${i+1}</div>
       ${wField}
       <div class="field"><label>Reps</label><input type="text" inputmode="text" class="r" placeholder="${e.reps}" value="${val&&val.r!=null?val.r:""}"></div>
@@ -553,13 +565,14 @@ function renderJournal(){
 function journalEditBlock(exId, idx){
   const wrap=document.createElement("div"); wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
   const entry=DB[exId][idx]; const unit=entry.unit||"kg";
-  const unitLabel = unit==="pdc" ? "poids du corps" : unit;
+  const unitLabel = unit==="pdc" ? "poids du corps" : (unit==="plaq" ? "niveau" : unit);
   const title=document.createElement("div"); title.className="ex-name"; title.style.fontSize="14px"; title.textContent=(EX_NAME[exId]||exId)+" ("+unitLabel+")"; wrap.appendChild(title);
   const setsWrap=document.createElement("div"); setsWrap.className="sets"; wrap.appendChild(setsWrap);
   function renum(){ [...setsWrap.children].forEach((r,i)=>r.querySelector(".n").textContent=i+1); }
   function addRow(val){
     const i=setsWrap.children.length; const row=document.createElement("div"); row.className="setrow";
-    const wField = unit==="pdc" ? "" : `<div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" value="${val&&val.w!=null?val.w:""}"></div>`;
+    const wLab = unit==="plaq"?"Niveau":"Poids ("+unit+")";
+    const wField = unit==="pdc" ? "" : `<div class="field"><label>${wLab}</label><input type="text" inputmode="decimal" class="w" value="${val&&val.w!=null?val.w:""}"></div>`;
     row.innerHTML=`<div class="n">${i+1}</div>
       ${wField}
       <div class="field"><label>Reps</label><input type="text" class="r" value="${val&&val.r!=null?val.r:""}"></div>
@@ -650,13 +663,13 @@ function muscleWeekCard(){
   const counts=weekSets(weekCursor);
   const total=MUSCLE_ORDER.reduce((a,m)=>a+(counts[m]||0),0);
   if(!total){ const d=document.createElement("div"); d.className="last"; d.textContent="Aucune série validée cette semaine."; card.appendChild(d); return card; }
-  const max=Math.max(1,...MUSCLE_ORDER.map(m=>counts[m]||0));
-  MUSCLE_ORDER.forEach(m=>{ const c=counts[m]||0; const row=document.createElement("div"); row.style.cssText="margin:7px 0";
-    row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${m}</span><b>${c}</b></div>
-      <div style="height:8px;background:#eef0ee;border-radius:5px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(c/max*100)}%;background:var(--green)"></div></div>`;
+  MUSCLE_ORDER.forEach(m=>{ const c=counts[m]||0; const tgt=MUSCLE_TARGET[m]||10; const reached=c>=tgt; const pct=Math.min(100,Math.round(c/tgt*100));
+    const row=document.createElement("div"); row.style.cssText="margin:7px 0";
+    row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${m}</span><b style="color:${reached?"var(--green)":"var(--ink)"}">${c} / ${tgt}${reached?" ✓":""}</b></div>
+      <div style="height:8px;background:#eef0ee;border-radius:5px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${reached?"var(--ok)":"var(--green)"}"></div></div>`;
     card.appendChild(row);
   });
-  const tot=document.createElement("div"); tot.className="ex-target"; tot.style.marginTop="8px"; tot.textContent="Total : "+total+" séries cette semaine"; card.appendChild(tot);
+  const tot=document.createElement("div"); tot.className="ex-target"; tot.style.marginTop="8px"; tot.textContent="Total : "+total+" séries cette semaine · objectif = séries/sem. pour progresser (à ajuster avec ton coach)"; card.appendChild(tot);
   return card;
 }
 function renderProgres(){
