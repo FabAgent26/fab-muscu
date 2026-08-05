@@ -1,6 +1,8 @@
-/* Service worker - rend l'appli disponible hors connexion.
-   Strategie: cache-first pour l'app shell, avec mise a jour en arriere-plan. */
-const CACHE = "muscu-fanny-v15";
+/* Service worker.
+   HTML (l'appli elle-même) : réseau d'abord → toujours la dernière version quand il y a du réseau,
+   et repli sur le cache hors connexion.
+   Autres fichiers (icônes, manifest) : cache d'abord (rapide + hors ligne). */
+const CACHE = "muscu-fanny-v16";
 const ASSETS = [
   "./",
   "./index.html",
@@ -25,16 +27,28 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
+  const isHTML = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
+  if (isHTML) {
+    // réseau d'abord pour l'appli
+    e.respondWith(
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req).then((r) => r || caches.match("./index.html")))
+    );
+    return;
+  }
+  // cache d'abord pour les autres fichiers
   e.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req).then((res) => {
+    caches.match(req).then((cached) =>
+      cached || fetch(req).then((res) => {
         if (res && res.status === 200 && res.type === "basic") {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(req, copy));
         }
         return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+      })
+    )
   );
 });
