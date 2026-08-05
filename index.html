@@ -187,13 +187,15 @@ const EX_NAME={}, EX_DEF={};
 PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; if(!EX_DEF[e.id]) EX_DEF[e.id]=e; }));
 function defUnit(exId){ const e=EX_DEF[exId]; return e && e.unit ? e.unit : "kg"; }
 
-const TABS = PROGRAM.concat([
-  {key:"BILAN",   label:"Bilan",   bilan:true},
-  {key:"JOURNAL", label:"Journal", journal:true},
-  {key:"PROGRES", label:"Progrès", progres:true},
-  {key:"POIDS",   label:"Poids",   poids:true},
-  {key:"MENS",    label:"Mensurations", mens:true},
-]);
+const TABS = [{key:"HOME", label:"Accueil", home:true}]
+  .concat(PROGRAM)
+  .concat([
+    {key:"BILAN",   label:"Bilan",   bilan:true},
+    {key:"JOURNAL", label:"Journal", journal:true},
+    {key:"PROGRES", label:"Progrès", progres:true},
+    {key:"POIDS",   label:"Poids",   poids:true},
+    {key:"MENS",    label:"Mensurations", mens:true},
+  ]);
 
 /* Muscle principal par exercice (pour le calcul séries/muscle/semaine) */
 const MUSCLE={
@@ -295,6 +297,8 @@ function weekSets(mondayIso){
 function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 const MOIS=["janv","févr","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
 const MOIS_LONG=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const JOURS=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+function frDateLong(iso){ const d=new Date(iso+"T00:00:00"); return JOURS[d.getDay()]+" "+parseInt(iso.split("-")[2],10)+" "+MOIS_LONG[d.getMonth()]; }
 function frDate(iso){ const [y,m,d]=iso.split("-"); return parseInt(d,10)+" "+MOIS[parseInt(m,10)-1]+" "+y; }
 function frShort(iso){ const [y,m,d]=iso.split("-"); return parseInt(d,10)+" "+MOIS[parseInt(m,10)-1]; }
 function daysAgo(iso){ const a=new Date(iso+"T00:00:00"), b=new Date(todayStr()+"T00:00:00"); const n=Math.round((b-a)/86400000); if(n<=0) return "aujourd'hui"; if(n===1) return "hier"; return "il y a "+n+" j"; }
@@ -373,7 +377,7 @@ function renderTabs(){
   tabsEl.innerHTML="";
   TABS.forEach((s,i)=>{
     const b=document.createElement("button");
-    b.className="tab"+(i===currentTab?" active":"")+((s.journal||s.progres||s.poids)?" tab-extra":"");
+    b.className="tab"+(i===currentTab?" active":"")+((s.journal||s.progres||s.poids||s.mens||s.bilan)?" tab-extra":"");
     b.textContent=s.label;
     b.onclick=()=>{ currentTab=i; renderTabs(); renderSession(); window.scrollTo(0,0); };
     tabsEl.appendChild(b);
@@ -386,6 +390,7 @@ function renderSession(){
   if(t.poids){ renderPoids(); return; }
   if(t.mens){ renderMens(); return; }
   if(t.bilan){ renderBilan(); return; }
+  if(t.home){ renderHome(); return; }
   document.getElementById("subtitle").textContent=t.label+" - "+t.focus;
   mainEl.innerHTML="";
   const warm=document.createElement("div"); warm.className="warm";
@@ -506,6 +511,56 @@ function noteCard(date, sessionKey){
   s.onclick=()=>{ toast("Ressenti enregistré"); };
   card.appendChild(ta); card.appendChild(s);
   return card;
+}
+
+/* ================= Accueil ================= */
+function goTab(key){ const i=TABS.findIndex(t=>t.key===key); if(i>=0){ currentTab=i; renderTabs(); renderSession(); window.scrollTo(0,0); } }
+function lastSessionDate(key){ let d=null; Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.session===key && (d==null||en.date>d)) d=en.date; })); return d; }
+function nextSession(){ let best=PROGRAM[0].key, bestDate="9999-99-99"; PROGRAM.forEach(s=>{ const d=lastSessionDate(s.key)||"0000-00-00"; if(d<bestDate){ bestDate=d; best=s.key; } }); return best; }
+function latestRecord(){ let out=null,outDate="0000-00-00";
+  Object.keys(DB).forEach(exId=>{ const sc=bestScoreEver(exId); if(!sc) return; let d=null; DB[exId].forEach(en=>{ const s=entryScore(en); if(s && s.val===sc.val && (d==null||en.date>d)) d=en.date; }); if(d && d>outDate){ outDate=d; out={exId, sc}; } });
+  return out;
+}
+function importData(text){
+  let obj; try{ obj=JSON.parse(text); }catch(e){ toast("Code invalide"); return; }
+  let n=0;
+  if(Array.isArray(obj.meas)){ obj.meas.forEach(m=>{ if(!m.date||!m.v) return; MEAS=MEAS.filter(x=>x.date!==m.date); MEAS.push({date:m.date, v:m.v}); n++; }); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); }
+  if(Array.isArray(obj.pm)){ obj.pm.forEach(p=>{ if(!p.mois||p.poids==null) return; const ex=PM.find(x=>x.mois===p.mois); if(ex) ex.poids=p.poids; else PM.push({mois:p.mois, poids:p.poids, estime:p.estime}); n++; }); savePM(); }
+  if(obj.db && typeof obj.db==="object"){ Object.keys(obj.db).forEach(exId=>{ const arr=obj.db[exId]; if(!Array.isArray(arr)) return; DB[exId]=DB[exId]||[];
+    arr.forEach(en=>{ if(!en.date) return; DB[exId]=DB[exId].filter(x=>!(x.date===en.date && x.session===en.session)); DB[exId].push({date:en.date, session:en.session, unit:en.unit||defUnit(exId), sets:en.sets||[]}); n++; });
+    DB[exId].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0)); if(!DB[exId].length) delete DB[exId]; }); saveDB(); }
+  toast(n+" élément(s) importé(s)"); currentTab=0; renderTabs(); renderSession();
+}
+function renderHome(){
+  document.getElementById("subtitle").textContent="Programme Pareto";
+  mainEl.innerHTML="";
+  const g=document.createElement("div"); g.className="card"; g.style.cssText="background:var(--green);color:#fff;border:none";
+  g.innerHTML=`<div style="font-size:20px;font-weight:700">Salut Fanny</div><div style="opacity:.85;font-size:13px;margin-top:2px">${frDateLong(todayStr())}</div>`;
+  mainEl.appendChild(g);
+  const nk=nextSession(); const nt=PROGRAM.find(s=>s.key===nk); const last=lastSessionDate(nk);
+  const ns=document.createElement("div"); ns.className="card";
+  ns.innerHTML=`<div class="ex-target">Ta prochaine séance</div><div class="ex-name" style="font-size:20px;margin:2px 0">${nt.label} — ${nt.focus}</div><div class="ex-target">${last?("dernière fois "+daysAgo(last)):"jamais faite"}</div>`;
+  const btn=document.createElement("button"); btn.className="save"; btn.style.cssText="width:100%;margin-top:10px;font-size:16px;padding:14px"; btn.textContent="Commencer "+nt.label; btn.onclick=()=>goTab(nk);
+  ns.appendChild(btn); mainEl.appendChild(ns);
+  const mon=weekMonday(todayStr()), end=addDaysIso(mon,6);
+  const done=new Set(); Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.date>=mon&&en.date<=end&&en.session) done.add(en.session); }));
+  const wk=document.createElement("div"); wk.className="card"; wk.style.cursor="pointer"; wk.onclick=()=>goTab("BILAN");
+  wk.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="ex-name" style="font-size:15px">Cette semaine</span><b style="color:var(--green);font-size:18px">${done.size} / ${PROGRAM.length}</b></div><div class="ex-target">séances faites · voir le bilan</div>`;
+  mainEl.appendChild(wk);
+  const rows=pmRows(); const actuel=rows.length?rows[rows.length-1].poids:BW_START; const totalPerdu=+(BW_START-actuel).toFixed(1); const reste=+(actuel-BW_GOAL).toFixed(1);
+  const pw=document.createElement("div"); pw.className="card"; pw.style.cursor="pointer"; pw.onclick=()=>goTab("POIDS");
+  pw.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:4px">Poids</div>
+    <div class="last" style="display:flex;justify-content:space-between"><span>Actuel</span><b>${actuel} kg</b></div>
+    <div class="last" style="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"><span>Total perdu</span><b>−${totalPerdu} kg</b></div>
+    <div class="last" style="display:flex;justify-content:space-between"><span>Reste (obj. ${BW_GOAL})</span><b>${reste>0?reste+" kg":"atteint !"}</b></div>`;
+  mainEl.appendChild(pw);
+  const lr=latestRecord();
+  if(lr){ const rc=document.createElement("div"); rc.className="card"; rc.innerHTML=`<div class="ex-name" style="font-size:15px">Ton dernier record</div><div class="last" style="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"><span>${EX_NAME[lr.exId]||lr.exId}</span><b>${withLb(lr.exId, lr.sc)}</b></div>`; mainEl.appendChild(rc); }
+  const imp=document.createElement("div"); imp.className="card";
+  imp.innerHTML=`<div class="ex-name" style="font-size:14px">Importer des données</div><div class="ex-target" style="margin-bottom:6px">Colle le code fourni par Claude (mensurations, séances passées) puis Importer.</div>`;
+  const ta=document.createElement("textarea"); ta.className="note"; ta.placeholder='{ "meas": [...], "db": {...} }';
+  const ib=document.createElement("button"); ib.className="save"; ib.style.marginTop="6px"; ib.textContent="Importer"; ib.onclick=()=>{ if(ta.value.trim()) importData(ta.value.trim()); else toast("Colle d'abord le code"); };
+  imp.appendChild(ta); imp.appendChild(ib); mainEl.appendChild(imp);
 }
 
 /* ================= Journal ================= */
