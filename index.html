@@ -117,7 +117,7 @@
 <body>
 <header>
   <h1>Carnet Muscu Fanny</h1>
-  <div class="sub" id="subtitle">Programme Cedric, 4 séances / semaine</div>
+  <div class="sub" id="subtitle">Programme Cédric, 4 séances / semaine</div>
   <div class="top-actions">
     <button id="btn-export">Exporter pour le coach</button>
     <button id="btn-reset">Effacer aujourd'hui</button>
@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="v13";
+const APP_VERSION="1.3";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -155,7 +155,7 @@ const PROGRAM = [
       {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"45s"},
+      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
     ]},
   { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilatéral",
     ex:[
@@ -163,16 +163,16 @@ const PROGRAM = [
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
       {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
       {id:"tirage_vertical", name:"Tirage vertical", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"kg", rest:"60s"},
-      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"75s"},
-      {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"90s"},
+      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
+      {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"45s"},
-      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"45s"},
+      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
+      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
   { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
     ex:[
@@ -180,7 +180,7 @@ const PROGRAM = [
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
       {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
 ];
 
@@ -325,8 +325,8 @@ function entryScore(entry){
   if(unit==="plaq"){
     let best=null,bestReps=null,bestR=null;
     (entry.sets||[]).forEach(s=>{ const w=parseNum(s.w), r=parseNum(s.r); if(w!=null&&(best==null||w>best)){ best=w; bestReps=r; } if(r!=null&&(bestR==null||r>bestR)) bestR=r; });
-    if(best!=null) return {val:best,type:"plaq",label:"niveau "+best+(bestReps!=null?(" × "+bestReps):"")};
-    if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" reps"};
+    if(best!=null) return {val:best,type:"plaq",label:"niveau "+best+(bestReps!=null?(" × "+bestReps+" rép"):"")};
+    if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" rép"};
     return null;
   }
   let bestKg=null,bestReps=null,bestR=null;
@@ -335,8 +335,8 @@ function entryScore(entry){
     if(w!=null && unit!=="pdc"){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
     if(r!=null && (bestR==null||r>bestR)) bestR=r;
   });
-  if(bestKg!=null) return {val:bestKg,type:"kg",label:fmtKg(bestKg)+" kg"+(bestReps!=null?(" × "+bestReps):"")};
-  if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" reps"};
+  if(bestKg!=null) return {val:bestKg,type:"kg",label:fmtKg(bestKg)+" kg"+(bestReps!=null?(" × "+bestReps+" rép"):"")};
+  if(bestR!=null) return {val:bestR,type:"reps",label:bestR+" rép"};
   return null;
 }
 function bestScoreBefore(exId, beforeIdx){
@@ -539,7 +539,7 @@ function importData(text){
   toast(n+" élément(s) importé(s)"); currentTab=0; renderTabs(); renderSession();
 }
 function renderHome(){
-  document.getElementById("subtitle").textContent="Programme Cedric";
+  document.getElementById("subtitle").textContent="Programme Cédric";
   mainEl.innerHTML="";
   const g=document.createElement("div"); g.className="card"; g.style.cssText="background:var(--green);color:#fff;border:none";
   g.innerHTML=`<div style="font-size:20px;font-weight:700">Salut Fanny</div><div style="opacity:.85;font-size:13px;margin-top:2px">${frDateLong(todayStr())}</div>`;
@@ -820,7 +820,7 @@ function renderPoids(){
 }
 
 /* ================= Onglet Mensurations ================= */
-let mensChartField="poitrine";
+let mensChartField="hanche";
 function renderMens(){
   document.getElementById("subtitle").textContent="Mensurations (cm)";
   mainEl.innerHTML="";
