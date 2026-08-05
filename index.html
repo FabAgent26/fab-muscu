@@ -150,27 +150,27 @@ const SS = "Superset (enchaîné)";
 const PROGRAM = [
   { key:"HAUT_A", label:"Haut A", focus:"Épaules / posture",
     ex:[
-      {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"lb", rest:"60s"},
+      {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"plaq", rest:"60s"},
       {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", unit:"pdc", rest:"60s"},
-      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"lb", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
+      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
+      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"45s"},
     ]},
   { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilatéral",
     ex:[
       {id:"hip_thrust_barre", name:"Hip thrust barre / haltère", sets:4, reps:"8", hint:"5 kg", hintKg:5, unit:"kg", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
       {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
     ]},
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
-      {id:"tirage_vertical", name:"Tirage vertical (poulie)", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"lb", rest:"90s"},
+      {id:"tirage_vertical", name:"Tirage vertical (poulie)", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"plaq", rest:"90s"},
       {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"75s"},
       {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"90s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
+      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"45s"},
       {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"45s"},
     ]},
   { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
@@ -178,7 +178,7 @@ const PROGRAM = [
       {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
       {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
     ]},
 ];
@@ -188,6 +188,7 @@ PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; if(!EX_DEF[e.id]) EX_
 function defUnit(exId){ const e=EX_DEF[exId]; return e && e.unit ? e.unit : "kg"; }
 
 const TABS = PROGRAM.concat([
+  {key:"BILAN",   label:"Bilan",   bilan:true},
   {key:"JOURNAL", label:"Journal", journal:true},
   {key:"PROGRES", label:"Progrès", progres:true},
   {key:"POIDS",   label:"Poids",   poids:true},
@@ -384,6 +385,7 @@ function renderSession(){
   if(t.progres){ renderProgres(); return; }
   if(t.poids){ renderPoids(); return; }
   if(t.mens){ renderMens(); return; }
+  if(t.bilan){ renderBilan(); return; }
   document.getElementById("subtitle").textContent=t.label+" - "+t.focus;
   mainEl.innerHTML="";
   const warm=document.createElement("div"); warm.className="warm";
@@ -785,6 +787,70 @@ function renderMens(){
       hist.appendChild(r); });
     mainEl.appendChild(hist);
   }
+}
+
+/* ================= Onglet Bilan hebdo ================= */
+let bilanWeek=null;
+function prsInWeek(mon){
+  const end=addDaysIso(mon,6); const out=[];
+  Object.keys(DB).forEach(exId=>{ const h=DB[exId]; if(h.length<2) return;
+    let bestBefore=null, bestWk=null, bestWkSc=null;
+    h.forEach(en=>{ const s=entryScore(en); if(!s) return; if(en.date<mon){ if(bestBefore==null||s.val>bestBefore) bestBefore=s.val; } else if(en.date<=end){ if(bestWk==null||s.val>bestWk){ bestWk=s.val; bestWkSc=s; } } });
+    if(bestWk!=null && bestBefore!=null && bestWk>bestBefore) out.push({exId, sc:bestWkSc});
+  });
+  return out;
+}
+function stagnantExercises(){
+  const out=[];
+  Object.keys(DB).forEach(exId=>{ const h=DB[exId]; if(h.length<4) return;
+    const last=entryScore(h[h.length-1]); const ref=entryScore(h[h.length-4]);
+    if(last && ref && last.type===ref.type && last.val<=ref.val) out.push(exId);
+  });
+  return out;
+}
+function renderBilan(){
+  document.getElementById("subtitle").textContent="Bilan hebdo";
+  mainEl.innerHTML="";
+  if(!bilanWeek) bilanWeek=weekMonday(todayStr());
+  const mon=bilanWeek, end=addDaysIso(mon,6);
+  const nav=document.createElement("div"); nav.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px";
+  nav.innerHTML=`<button class="addset" id="bp">‹</button><b>Semaine du ${frShort(mon)}</b><button class="addset" id="bn">›</button>`;
+  mainEl.appendChild(nav);
+  nav.querySelector("#bp").onclick=()=>{ bilanWeek=addDaysIso(mon,-7); renderBilan(); };
+  nav.querySelector("#bn").onclick=()=>{ bilanWeek=addDaysIso(mon,7); renderBilan(); };
+
+  // Adhérence
+  const doneSess=new Set();
+  Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.date>=mon && en.date<=end && en.session) doneSess.add(en.session); }));
+  const adh=document.createElement("div"); adh.className="card";
+  adh.innerHTML=`<div class="ex-name" style="font-size:15px">Adhérence</div><div class="ex-target" style="margin-bottom:6px">${doneSess.size} / ${PROGRAM.length} séances faites cette semaine</div>`;
+  PROGRAM.forEach(s=>{ const ok=doneSess.has(s.key); const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${s.label}</span><b style="color:${ok?"var(--green)":"#c25"}">${ok?"✓ faite":"✗ manquée"}</b>`; adh.appendChild(r); });
+  mainEl.appendChild(adh);
+
+  // Records de la semaine
+  const prs=prsInWeek(mon);
+  const prc=document.createElement("div"); prc.className="card"; prc.innerHTML=`<div class="ex-name" style="font-size:15px">Records battus cette semaine</div>`;
+  if(prs.length){ prs.forEach(p=>{ const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between;background:#eef6ef;color:var(--green)"; r.innerHTML=`<span>${EX_NAME[p.exId]||p.exId}</span><b>${withLb(p.exId,p.sc)}</b>`; prc.appendChild(r); }); }
+  else { const d=document.createElement("div"); d.className="last"; d.textContent="Aucun nouveau record cette semaine."; prc.appendChild(d); }
+  mainEl.appendChild(prc);
+
+  // Alertes stagnation
+  const stag=stagnantExercises();
+  const stc=document.createElement("div"); stc.className="card"; stc.innerHTML=`<div class="ex-name" style="font-size:15px">Alertes stagnation</div>`;
+  if(stag.length){ const note=document.createElement("div"); note.className="ex-target"; note.style.marginBottom="4px"; note.textContent="Pas de progression sur les 3 dernières séances :"; stc.appendChild(note);
+    stag.forEach(id=>{ const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:#c9860a">⚠ stagne</b>`; stc.appendChild(r); }); }
+  else { const d=document.createElement("div"); d.className="last"; d.textContent="Rien à signaler (ou pas encore assez de séances pour juger)."; stc.appendChild(d); }
+  mainEl.appendChild(stc);
+
+  // Séries par muscle
+  const counts=weekSets(mon); const total=MUSCLE_ORDER.reduce((a,m)=>a+(counts[m]||0),0);
+  const mc=document.createElement("div"); mc.className="card"; mc.innerHTML=`<div class="ex-name" style="font-size:15px">Séries par muscle</div>`;
+  if(total){ MUSCLE_ORDER.forEach(m=>{ const c=counts[m]||0; const tgt=MUSCLE_TARGET[m]||10; const reached=c>=tgt; const pct=Math.min(100,Math.round(c/tgt*100));
+      const row=document.createElement("div"); row.style.cssText="margin:6px 0";
+      row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${m}</span><b style="color:${reached?"var(--green)":"var(--ink)"}">${c} / ${tgt}${reached?" ✓":""}</b></div><div style="height:8px;background:#eef0ee;border-radius:5px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${reached?"var(--ok)":"var(--green)"}"></div></div>`;
+      mc.appendChild(row); }); }
+  else { const d=document.createElement("div"); d.className="last"; d.textContent="Aucune série validée cette semaine."; mc.appendChild(d); }
+  mainEl.appendChild(mc);
 }
 
 /* ================= Export coach ================= */
