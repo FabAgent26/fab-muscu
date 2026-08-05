@@ -1,6 +1,6 @@
 /* Service worker - rend l'appli disponible hors connexion.
    Strategie: cache-first pour l'app shell, avec mise a jour en arriere-plan. */
-const CACHE = "muscu-fanny-v2";
+const CACHE = "muscu-fanny-v3";
 const ASSETS = [
   "./",
   "./index.html",

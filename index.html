@@ -181,14 +181,68 @@ const PROGRAM = [
 const EX_NAME = {};
 PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; }));
 
-/* onglets = les 4 seances + le Journal */
-const TABS = PROGRAM.concat([{key:"JOURNAL", label:"Journal", journal:true}]);
+/* onglets = les 4 seances + Journal + Progres + Poids */
+const TABS = PROGRAM.concat([
+  {key:"JOURNAL", label:"Journal", journal:true},
+  {key:"PROGRES", label:"Progres", progres:true},
+  {key:"POIDS",   label:"Poids",   poids:true},
+]);
 
 /* ---------- Stockage ---------- */
 const STORE_KEY = "muscu_fanny_v1";
 function loadDB(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
 function saveDB(db){ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
 let DB = loadDB();   // { exerciseId: [ {date:"2026-08-05", sets:[{w,r},...]}, ... ] }
+
+/* Notes de ressenti par seance : { "2026-08-05|HAUT_A": "texte" } */
+const NOTES_KEY = "muscu_fanny_notes_v1";
+function loadNotes(){ try{ return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; }catch(e){ return {}; } }
+function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(NOTES)); }
+let NOTES = loadNotes();
+
+/* Poids de corps : [ {date:"2026-08-05", kg:"63.4"} ] */
+const BW_KEY = "muscu_fanny_bw_v1";
+function loadBW(){ try{ return JSON.parse(localStorage.getItem(BW_KEY)) || []; }catch(e){ return []; } }
+function saveBW(){ localStorage.setItem(BW_KEY, JSON.stringify(BW)); }
+let BW = loadBW();
+const BW_GOAL_LOW = 62, BW_GOAL_HIGH = 64;
+
+/* Parsing d'un poids texte -> nombre (pour graphes et records).
+   "6 kg"->6 ; "2 x 5 kg"->5 (poids par haltere) ; "PDC"/""->null */
+function parseWeight(w){
+  if(w==null) return null;
+  const s=String(w).replace(",",".");
+  const mult=s.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/);
+  if(mult) return parseFloat(mult[2]);
+  const m=s.match(/(\d+(?:\.\d+)?)/);
+  return m?parseFloat(m[1]):null;
+}
+function parseReps(r){ const m=String(r==null?"":r).match(/(\d+(?:\.\d+)?)/); return m?parseFloat(m[1]):null; }
+
+/* Score d'une entree : meilleur poids des series ; si aucun poids (PDC) -> meilleures reps. */
+function entryScore(entry){
+  let bestW=null, bestWreps=null, bestR=null;
+  (entry.sets||[]).forEach(s=>{
+    const w=parseWeight(s.w), r=parseReps(s.r);
+    if(w!=null && (bestW==null || w>bestW)){ bestW=w; bestWreps=r; }
+    if(r!=null && (bestR==null || r>bestR)) bestR=r;
+  });
+  if(bestW!=null) return {val:bestW, type:"kg", label:bestW+" kg"+(bestWreps!=null?(" x "+bestWreps):"")};
+  if(bestR!=null) return {val:bestR, type:"reps", label:bestR+" reps"};
+  return null;
+}
+function bestScoreBefore(exId, beforeIdx){
+  const h=DB[exId]||[]; let best=null;
+  for(let i=0;i<beforeIdx && i<h.length;i++){
+    const sc=entryScore(h[i]); if(sc && (best==null || sc.val>best)) best=sc.val;
+  }
+  return best;
+}
+function bestScoreEver(exId){
+  const h=DB[exId]||[]; let best=null, lbl="";
+  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null || sc.val>best)){ best=sc.val; lbl=sc.label; } });
+  return best==null?null:{val:best, label:lbl};
+}
 
 function lastEntry(exId){
   const h = DB[exId]; if(!h || !h.length) return null;
@@ -235,6 +289,8 @@ function renderTabs(){
 function renderSession(){
   const t=TABS[currentTab];
   if(t.journal){ renderJournal(); return; }
+  if(t.progres){ renderProgres(); return; }
+  if(t.poids){ renderPoids(); return; }
   const s=t;
   document.getElementById("subtitle").textContent = s.label+" - "+s.focus;
   mainEl.innerHTML="";
@@ -247,10 +303,35 @@ function renderSession(){
     mainEl.appendChild(exerciseCard(e));
   });
 
+  mainEl.appendChild(noteCard(todayStr(), s.key));
+
   const hint=document.createElement("div");
   hint.className="hint";
   hint.innerHTML="Tes poids sont enregistres sur ce telephone.<br>Astuce : garde le telephone en mode avion, ca marche pareil.";
   mainEl.appendChild(hint);
+}
+
+/* Carte "ressenti de la seance" (le coach la verra dans l'export) */
+function noteCard(date, sessionKey){
+  const key=date+"|"+sessionKey;
+  const card=document.createElement("div"); card.className="card";
+  const h=document.createElement("div"); h.className="ex-name"; h.style.fontSize="15px";
+  h.textContent="Ressenti de la seance"; card.appendChild(h);
+  const sub=document.createElement("div"); sub.className="ex-target"; sub.style.marginBottom="8px";
+  sub.textContent="Note ici ce que tu as ressenti (ton coach le verra dans l'export).";
+  card.appendChild(sub);
+  const ta=document.createElement("textarea");
+  ta.style.cssText="width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;resize:vertical";
+  ta.placeholder="Ex : fessiers bien sentis sur le hip thrust, genou un peu sensible sur le BSS...";
+  ta.value=NOTES[key]||"";
+  const save=document.createElement("button"); save.className="save"; save.style.marginTop="8px"; save.textContent="Enregistrer le ressenti";
+  save.onclick=()=>{
+    const v=ta.value.trim();
+    if(v) NOTES[key]=v; else delete NOTES[key];
+    saveNotes(); toast("Ressenti enregistre");
+  };
+  card.appendChild(ta); card.appendChild(save);
+  return card;
 }
 
 function exerciseCard(e){
@@ -283,6 +364,12 @@ function exerciseCard(e){
     lastEl.innerHTML="<b>Derniere fois</b> : jamais fait encore. Note le poids d'aujourd'hui.";
   }
   card.appendChild(lastEl);
+
+  const rec=bestScoreEver(e.id);
+  if(rec){
+    const r=document.createElement("div"); r.className="last"; r.style.background="#eef6ef"; r.style.color="var(--green)";
+    r.innerHTML=`<b>Record</b> : ${rec.label}`; card.appendChild(r);
+  }
 
   // set rows
   const setsWrap=document.createElement("div"); setsWrap.className="sets";
@@ -323,10 +410,18 @@ function exerciseCard(e){
     const sess = TABS[currentTab].key;
     DB[e.id]=DB[e.id]||[];
     const h=DB[e.id];
-    if(h.length && h[h.length-1].date===todayStr() && h[h.length-1].session===sess){ h[h.length-1].sets=sets; }
-    else { h.push({date:todayStr(), sets, session:sess}); }
+    let idxSaved;
+    if(h.length && h[h.length-1].date===todayStr() && h[h.length-1].session===sess){ h[h.length-1].sets=sets; idxSaved=h.length-1; }
+    else { h.push({date:todayStr(), sets, session:sess}); idxSaved=h.length-1; }
     saveDB(DB);
-    toast("Enregistre");
+    // detection de record : score du jour vs meilleur d'avant
+    const todayScore=entryScore({sets});
+    const prevBest=bestScoreBefore(e.id, idxSaved);
+    if(todayScore && (prevBest==null || todayScore.val>prevBest) && DB[e.id].length>1){
+      toast("Nouveau record : "+todayScore.label+" !");
+    } else {
+      toast("Enregistre");
+    }
     renderSession();
   };
   actions.appendChild(addBtn); actions.appendChild(saveBtn);
@@ -353,28 +448,47 @@ function collectSessions(){
 function sessionLabel(key){ const t=PROGRAM.find(s=>s.key===key); return t?t.label:"Seance"; }
 
 let journalOpen={};
+let journalView="list";
+let calCursor=null;
+function sessionLabelShort(key){ const t=PROGRAM.find(s=>s.key===key); if(!t) return "?"; return t.label.replace("Haut","H").replace("Bas","B").replace(/\s/g,""); }
+
 function renderJournal(){
   document.getElementById("subtitle").textContent="Journal - toutes tes seances";
   mainEl.innerHTML="";
   const groups=collectSessions();
+
+  const tg=document.createElement("div"); tg.style.cssText="display:flex;gap:8px;margin-bottom:12px";
+  [["list","Liste"],["cal","Calendrier"]].forEach(([v,lab])=>{
+    const b=document.createElement("button"); b.textContent=lab;
+    b.style.cssText="flex:1;border-radius:10px;padding:10px;font-size:14px;font-weight:700;border:1px solid var(--line);"+(journalView===v?"background:var(--green);color:#fff;border-color:var(--green)":"background:#fff;color:var(--ink)");
+    b.onclick=()=>{ journalView=v; renderJournal(); };
+    tg.appendChild(b);
+  });
+  mainEl.appendChild(tg);
+
   if(!groups.length){
     const d=document.createElement("div"); d.className="warm";
     d.textContent="Aucune seance enregistree pour le moment. Fais ta premiere seance, elle apparaitra ici avec sa date.";
     mainEl.appendChild(d); return;
   }
+
+  if(journalView==="cal"){ renderCalendar(groups); return; }
+
   groups.forEach(g=>{
     const key=g.date+"|"+g.session;
     const open=!!journalOpen[key];
+    const hasNote=!!NOTES[key];
     const card=document.createElement("div"); card.className="card";
     const head=document.createElement("div"); head.className="ex-head"; head.style.cursor="pointer";
     head.innerHTML=`<div>
         <div class="ex-name">${sessionLabel(g.session)}</div>
-        <div class="ex-target">${frDate(g.date)} &middot; ${daysAgo(g.date)} &middot; ${g.items.length} exercice(s)</div>
+        <div class="ex-target">${frDate(g.date)} &middot; ${daysAgo(g.date)} &middot; ${g.items.length} exercice(s)${hasNote?' &middot; note':''}</div>
       </div><div style="font-size:22px;color:var(--muted);line-height:1">${open?"&minus;":"+"}</div>`;
     head.onclick=()=>{ journalOpen[key]=!open; renderJournal(); };
     card.appendChild(head);
     if(open){
       g.items.forEach(it=> card.appendChild(journalEditBlock(it.exId, it.idx)) );
+      card.appendChild(journalNoteBlock(g.date, g.session));
       const del=document.createElement("button");
       del.className="addset"; del.style.color="#c25"; del.style.marginTop="12px"; del.style.width="100%";
       del.textContent="Supprimer cette seance";
@@ -392,6 +506,55 @@ function renderJournal(){
     }
     mainEl.appendChild(card);
   });
+}
+
+function journalNoteBlock(date, session){
+  const key=date+"|"+session;
+  const wrap=document.createElement("div");
+  wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
+  const t=document.createElement("div"); t.className="ex-name"; t.style.fontSize="14px"; t.textContent="Ressenti (le coach le verra)"; wrap.appendChild(t);
+  const ta=document.createElement("textarea");
+  ta.style.cssText="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:9px;font-size:14px;font-family:inherit;resize:vertical;margin-top:6px";
+  ta.placeholder="Ajoute un ressenti...";
+  ta.value=NOTES[key]||"";
+  const s=document.createElement("button"); s.className="save"; s.style.marginTop="6px"; s.textContent="Enregistrer le ressenti";
+  s.onclick=()=>{ const v=ta.value.trim(); if(v)NOTES[key]=v; else delete NOTES[key]; saveNotes(); toast("Ressenti enregistre"); };
+  wrap.appendChild(ta); wrap.appendChild(s);
+  return wrap;
+}
+
+function renderCalendar(groups){
+  const byDate={};
+  groups.forEach(g=>{ (byDate[g.date]=byDate[g.date]||[]).push(g); });
+  if(!calCursor) calCursor=todayStr().slice(0,7);
+  let [Y,M]=calCursor.split("-").map(Number);
+  const moisN=["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
+  const nav=document.createElement("div"); nav.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px";
+  nav.innerHTML=`<button class="addset" id="cal-prev">&lsaquo;</button><b>${moisN[M-1]} ${Y}</b><button class="addset" id="cal-next">&rsaquo;</button>`;
+  mainEl.appendChild(nav);
+  nav.querySelector("#cal-prev").onclick=()=>{ let m=M-1,y=Y; if(m<1){m=12;y--;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
+  nav.querySelector("#cal-next").onclick=()=>{ let m=M+1,y=Y; if(m>12){m=1;y++;} calCursor=y+"-"+String(m).padStart(2,"0"); renderJournal(); };
+
+  const grid=document.createElement("div"); grid.className="card"; grid.style.padding="10px";
+  const wrap=document.createElement("div"); wrap.style.cssText="display:grid;grid-template-columns:repeat(7,1fr);gap:4px";
+  ["L","M","M","J","V","S","D"].forEach(d=>{ const h=document.createElement("div"); h.textContent=d; h.style.cssText="text-align:center;font-size:11px;color:var(--muted);font-weight:700;padding:2px 0"; wrap.appendChild(h); });
+  const first=new Date(Y, M-1, 1);
+  const startDow=(first.getDay()+6)%7;
+  const daysInMonth=new Date(Y, M, 0).getDate();
+  for(let i=0;i<startDow;i++){ wrap.appendChild(document.createElement("div")); }
+  for(let d=1; d<=daysInMonth; d++){
+    const iso=Y+"-"+String(M).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const has=byDate[iso];
+    const cell=document.createElement("div");
+    cell.style.cssText="min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;padding:2px;"+(has?"background:#eef6ef;color:var(--green);font-weight:700;cursor:pointer":"color:var(--ink)");
+    if(iso===todayStr()) cell.style.boxShadow="inset 0 0 0 2px var(--green)";
+    cell.innerHTML=`<div>${d}</div>`+(has?`<div style="font-size:9px;line-height:1.1">${has.map(g=>sessionLabelShort(g.session)).join(" ")}</div>`:"");
+    if(has){ cell.onclick=()=>{ journalView="list"; has.forEach(g=>journalOpen[g.date+"|"+g.session]=true); renderJournal(); window.scrollTo(0,0); }; }
+    wrap.appendChild(cell);
+  }
+  grid.appendChild(wrap); mainEl.appendChild(grid);
+  const legend=document.createElement("div"); legend.className="hint"; legend.textContent="Jours en vert = seances. Tape dessus pour rouvrir la seance.";
+  mainEl.appendChild(legend);
 }
 
 function journalEditBlock(exId, idx){
@@ -424,6 +587,131 @@ function journalEditBlock(exId, idx){
   return wrap;
 }
 
+/* ---------- Graphe SVG simple (courbe) ---------- */
+function lineChart(points, opts){
+  opts=opts||{};
+  const W=320, H=150, padL=34, padR=12, padT=12, padB=24;
+  if(!points.length) return "<div class='last'>Pas encore de donnee a afficher.</div>";
+  const xs=points.map((p,i)=>i);
+  const ys=points.map(p=>p.y);
+  let ymin=Math.min(...ys), ymax=Math.max(...ys);
+  if(opts.yMin!=null) ymin=Math.min(ymin,opts.yMin);
+  if(opts.yMax!=null) ymax=Math.max(ymax,opts.yMax);
+  if(ymin===ymax){ ymin-=1; ymax+=1; }
+  const pad=(ymax-ymin)*0.15; ymin-=pad; ymax+=pad;
+  const nx=Math.max(1, points.length-1);
+  const X=i=> padL + (i/nx)*(W-padL-padR);
+  const Y=v=> padT + (1-(v-ymin)/(ymax-ymin))*(H-padT-padB);
+  let g="";
+  // bande objectif (poids de corps)
+  if(opts.band){
+    const y1=Y(opts.band[1]), y2=Y(opts.band[0]);
+    g+=`<rect x='${padL}' y='${y1.toFixed(1)}' width='${(W-padL-padR).toFixed(1)}' height='${(y2-y1).toFixed(1)}' fill='#43594b18'></rect>`;
+  }
+  // axes labels y (min/max)
+  g+=`<text x='4' y='${(Y(ymax)+4).toFixed(1)}' font-size='10' fill='#9a9f97'>${(+ymax.toFixed(1))}</text>`;
+  g+=`<text x='4' y='${(Y(ymin)+4).toFixed(1)}' font-size='10' fill='#9a9f97'>${(+ymin.toFixed(1))}</text>`;
+  // ligne
+  const d=points.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p.y).toFixed(1)).join(" ");
+  g+=`<path d='${d}' fill='none' stroke='#43594B' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'></path>`;
+  // points + labels x (premier / dernier)
+  points.forEach((p,i)=>{ g+=`<circle cx='${X(i).toFixed(1)}' cy='${Y(p.y).toFixed(1)}' r='3.2' fill='#43594B'></circle>`; });
+  const showX=[0, points.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  showX.forEach(i=>{ g+=`<text x='${X(i).toFixed(1)}' y='${H-6}' font-size='10' fill='#9a9f97' text-anchor='${i===0?"start":"end"}'>${points[i].x}</text>`; });
+  return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>${g}</svg>`;
+}
+
+/* ---------- Onglet Progres (courbe par exercice + records) ---------- */
+let progresEx=null;
+function renderProgres(){
+  document.getElementById("subtitle").textContent="Progres - ta charge dans le temps";
+  mainEl.innerHTML="";
+  const ids=Object.keys(DB).filter(id=>DB[id] && DB[id].length);
+  if(!ids.length){
+    const d=document.createElement("div"); d.className="warm";
+    d.textContent="Fais quelques seances et tu verras ici tes courbes de progression et tes records.";
+    mainEl.appendChild(d); return;
+  }
+  // ordre programme
+  const ordered=[];
+  PROGRAM.forEach(s=>s.ex.forEach(e=>{ if(DB[e.id] && !ordered.includes(e.id)) ordered.push(e.id); }));
+  ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
+  if(!progresEx || !ordered.includes(progresEx)) progresEx=ordered[0];
+
+  const card=document.createElement("div"); card.className="card";
+  const sel=document.createElement("select");
+  sel.style.cssText="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:15px;background:#fff;margin-bottom:10px";
+  ordered.forEach(id=>{
+    const o=document.createElement("option"); o.value=id; o.textContent=EX_NAME[id]||id; if(id===progresEx)o.selected=true; sel.appendChild(o);
+  });
+  sel.onchange=()=>{ progresEx=sel.value; renderProgres(); };
+  card.appendChild(sel);
+
+  const pts=(DB[progresEx]||[]).map(e=>{ const sc=entryScore(e); return sc?{x:frShort(e.date), y:sc.val, type:sc.type}:null; }).filter(Boolean);
+  const unit=pts.length&&pts[0].type==="reps"?" reps":" kg";
+  const chart=document.createElement("div"); chart.innerHTML=lineChart(pts,{});
+  card.appendChild(chart);
+
+  const rec=bestScoreEver(progresEx);
+  const info=document.createElement("div"); info.className="last"; info.style.marginTop="10px";
+  const lastE=lastEntry(progresEx); const lastSc=lastE?entryScore(lastE):null;
+  info.innerHTML=`<b>Record</b> : ${rec?rec.label:"-"} &nbsp;&middot;&nbsp; <b>Derniere</b> : ${lastSc?lastSc.label:"-"} &nbsp;&middot;&nbsp; ${pts.length} seance(s)`;
+  card.appendChild(info);
+  mainEl.appendChild(card);
+
+  // tableau recap records de tous les exos
+  const rc=document.createElement("div"); rc.className="card";
+  const rh=document.createElement("div"); rh.className="ex-name"; rh.style.fontSize="15px"; rh.textContent="Tes records"; rc.appendChild(rh);
+  ordered.forEach(id=>{
+    const r=bestScoreEver(id); if(!r) return;
+    const row=document.createElement("div"); row.className="last"; row.style.display="flex"; row.style.justifyContent="space-between";
+    row.innerHTML=`<span>${EX_NAME[id]||id}</span><b style="color:var(--green)">${r.label}</b>`;
+    rc.appendChild(row);
+  });
+  mainEl.appendChild(rc);
+}
+function frShort(iso){ const [y,m,d]=iso.split("-"); const mo=["jan","fev","mar","avr","mai","juin","juil","aou","sep","oct","nov","dec"]; return parseInt(d,10)+" "+mo[parseInt(m,10)-1]; }
+
+/* ---------- Onglet Poids de corps ---------- */
+function renderPoids(){
+  document.getElementById("subtitle").textContent="Poids de corps - objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg";
+  mainEl.innerHTML="";
+  // saisie
+  const add=document.createElement("div"); add.className="card";
+  add.innerHTML=`<div class="ex-name" style="font-size:15px">Noter mon poids aujourd'hui</div>`;
+  const row=document.createElement("div"); row.className="setrow"; row.style.marginTop="8px";
+  row.innerHTML=`<div class="field"><label>Poids (kg)</label><input type="text" inputmode="decimal" id="bw-in" placeholder="ex : 63.4"></div>`;
+  const b=document.createElement("button"); b.className="save"; b.style.maxWidth="120px"; b.textContent="Enregistrer";
+  row.appendChild(b); add.appendChild(row); mainEl.appendChild(add);
+  b.onclick=()=>{
+    const v=document.getElementById("bw-in").value.trim().replace(",",".");
+    if(!v || isNaN(parseFloat(v))){ toast("Entre un poids valide"); return; }
+    const t=todayStr(); const ex=BW.find(x=>x.date===t);
+    if(ex) ex.kg=v; else BW.push({date:t, kg:v});
+    BW.sort((a,b)=>a.date<b.date?-1:1); saveBW(); toast("Poids enregistre"); renderPoids();
+  };
+  // courbe
+  const pts=BW.map(x=>({x:frShort(x.date), y:parseFloat(String(x.kg).replace(",","."))})).filter(p=>!isNaN(p.y));
+  const ch=document.createElement("div"); ch.className="card";
+  ch.innerHTML=`<div class="ex-name" style="font-size:15px;margin-bottom:8px">Ta courbe</div>`+
+    lineChart(pts,{band:[BW_GOAL_LOW,BW_GOAL_HIGH], yMin:BW_GOAL_LOW-1, yMax:BW_GOAL_HIGH+1});
+  const leg=document.createElement("div"); leg.className="ex-target"; leg.style.marginTop="6px";
+  leg.textContent="Zone verte = ton objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg.";
+  ch.appendChild(leg); mainEl.appendChild(ch);
+  // historique
+  if(BW.length){
+    const hist=document.createElement("div"); hist.className="card";
+    hist.innerHTML=`<div class="ex-name" style="font-size:15px">Historique</div>`;
+    [...BW].reverse().forEach(x=>{
+      const r=document.createElement("div"); r.className="last"; r.style.display="flex"; r.style.justifyContent="space-between"; r.style.alignItems="center";
+      r.innerHTML=`<span>${frDate(x.date)}</span><span><b>${x.kg} kg</b> <button class="rm" style="font-size:18px">&times;</button></span>`;
+      r.querySelector(".rm").onclick=()=>{ if(confirm("Supprimer cette pesee ?")){ BW=BW.filter(y=>y.date!==x.date); saveBW(); renderPoids(); } };
+      hist.appendChild(r);
+    });
+    mainEl.appendChild(hist);
+  }
+}
+
 /* ---------- Export coach ---------- */
 function buildExport(){
   let out="CARNET MUSCU FANNY\nExport du "+frDate(todayStr())+"\n\n";
@@ -436,12 +724,29 @@ function buildExport(){
   ids.forEach(id=>{ if(!ordered.includes(id)) ordered.push(id); });
   ordered.forEach(id=>{
     const h=DB[id]; if(!h||!h.length) return;
-    out+="* "+(EX_NAME[id]||id)+"\n";
+    const rec=bestScoreEver(id);
+    out+="* "+(EX_NAME[id]||id)+(rec?"  [record "+rec.label+"]":"")+"\n";
     h.slice(-4).forEach(entry=>{
       out+="   "+frDate(entry.date)+" : "+(summarizeSets(entry.sets)||"-")+"\n";
     });
     out+="\n";
   });
+  // ressentis
+  const noteKeys=Object.keys(NOTES).filter(k=>NOTES[k]).sort().reverse();
+  if(noteKeys.length){
+    out+="RESSENTIS\n";
+    noteKeys.slice(0,12).forEach(k=>{
+      const [date,sess]=k.split("|");
+      out+="   "+frDate(date)+" ("+sessionLabel(sess)+") : "+NOTES[k]+"\n";
+    });
+    out+="\n";
+  }
+  // poids de corps
+  if(BW.length){
+    out+="POIDS DE CORPS (objectif "+BW_GOAL_LOW+"-"+BW_GOAL_HIGH+" kg)\n";
+    [...BW].slice(-8).forEach(x=>{ out+="   "+frDate(x.date)+" : "+x.kg+" kg\n"; });
+    out+="\n";
+  }
   return out.trim();
 }
 const modal=document.getElementById("modal");
