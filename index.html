@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="1.5";
+const APP_VERSION="1.6";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -273,6 +273,12 @@ let MEAS=loadMeas();
 function loadPM(){ try{ const s=localStorage.getItem(PM_KEY); return s?JSON.parse(s):JSON.parse(JSON.stringify(PM_DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(PM_DEFAULT)); } }
 function savePM(){ localStorage.setItem(PM_KEY, JSON.stringify(PM)); }
 let PM=loadPM();
+
+/* Séances faites sans détail (juste une date) : [{date, session}] */
+const LOGGED_KEY="muscu_fanny_loggeds_v1";
+function loadLoggeds(){ try{ return JSON.parse(localStorage.getItem(LOGGED_KEY))||[]; }catch(e){ return []; } }
+function saveLoggeds(){ localStorage.setItem(LOGGED_KEY, JSON.stringify(LOGGEDS)); }
+let LOGGEDS=loadLoggeds();
 
 function isoOf(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function addDaysIso(iso,n){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return isoOf(d); }
@@ -531,6 +537,7 @@ function importData(text){
   let obj; try{ obj=JSON.parse(text); }catch(e){ toast("Code invalide (vérifie le copier-coller)"); return; }
   let n=0;
   if(Array.isArray(obj.clear)){ obj.clear.forEach(exId=>{ if(DB[exId]){ delete DB[exId]; n++; } }); saveDB(); }
+  if(Array.isArray(obj.seances)){ obj.seances.forEach(s=>{ if(!s.date) return; const sess=s.session||"SEANCE"; if(!LOGGEDS.find(x=>x.date===s.date&&x.session===sess)){ LOGGEDS.push({date:s.date, session:sess}); n++; } }); saveLoggeds(); }
   if(Array.isArray(obj.meas)){ obj.meas.forEach(m=>{ if(!m.date||!m.v) return; MEAS=MEAS.filter(x=>x.date!==m.date); MEAS.push({date:m.date, v:m.v}); n++; }); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); }
   if(Array.isArray(obj.pm)){ obj.pm.forEach(p=>{ if(!p.mois||p.poids==null) return; const ex=PM.find(x=>x.mois===p.mois); if(ex) ex.poids=p.poids; else PM.push({mois:p.mois, poids:p.poids, estime:p.estime}); n++; }); savePM(); }
   if(obj.db && typeof obj.db==="object"){ Object.keys(obj.db).forEach(exId=>{ const arr=obj.db[exId]; if(!Array.isArray(arr)) return; DB[exId]=DB[exId]||[];
@@ -582,13 +589,14 @@ function collectSessions(){
       map[k].items.push({exId, idx});
     });
   });
+  LOGGEDS.forEach(s=>{ const k=s.date+"|"+s.session; if(!map[k]) map[k]={date:s.date, session:s.session, items:[]}; });
   const arr=Object.values(map);
   arr.sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:(a.session<b.session?-1:1)));
   return arr;
 }
-const SESSION_NAMES={ FULLBODY_A:"Full body A", FULLBODY_B:"Full body B" };
+const SESSION_NAMES={ FULLBODY_A:"Full body A", FULLBODY_B:"Full body B", FULLBODY_C:"Full body C" };
 function sessionLabel(key){ const t=PROGRAM.find(s=>s.key===key); if(t) return t.label; if(SESSION_NAMES[key]) return SESSION_NAMES[key]; return "Séance"; }
-function sessionLabelShort(key){ const t=PROGRAM.find(s=>s.key===key); if(t) return t.label.replace("Haut","H").replace("Bas","B").replace(/\s/g,""); if(SESSION_NAMES[key]) return SESSION_NAMES[key].replace(/Full body/i,"Fb").replace(/\s/g,""); return "?"; }
+function sessionLabelShort(key){ const t=PROGRAM.find(s=>s.key===key); if(t) return t.label.replace("Haut","H").replace("Bas","B").replace(/\s/g,""); if(SESSION_NAMES[key]) return SESSION_NAMES[key].replace(/Full body/i,"Fb").replace(/\s/g,""); if(key==="SEANCE") return "S"; return "?"; }
 
 let journalOpen={}, journalView="list", calCursor=null;
 function renderJournal(){
@@ -610,11 +618,12 @@ function renderJournal(){
     const card=document.createElement("div"); card.className="card";
     const head=document.createElement("div"); head.className="ex-head"; head.style.cursor="pointer";
     head.innerHTML=`<div><div class="ex-name">${sessionLabel(g.session)}</div>
-        <div class="ex-target">${frDate(g.date)} · ${daysAgo(g.date)} · ${g.items.length} exercice(s)${hasNote?" · note":""}</div></div>
+        <div class="ex-target">${frDate(g.date)} · ${daysAgo(g.date)} · ${g.items.length?g.items.length+" exercice(s)":"sans détail"}${hasNote?" · note":""}</div></div>
       <div style="font-size:22px;color:var(--muted);line-height:1">${open?"−":"+"}</div>`;
     head.onclick=()=>{ journalOpen[key]=!open; renderJournal(); };
     card.appendChild(head);
     if(open){
+      if(!g.items.length){ const d=document.createElement("div"); d.className="last"; d.textContent="Séance faite, sans détail enregistré."; card.appendChild(d); }
       g.items.forEach(it=> card.appendChild(journalEditBlock(it.exId, it.idx)) );
       card.appendChild(journalNoteBlock(g.date, g.session));
       const del=document.createElement("button"); del.className="addset"; del.style.cssText="color:#c25;margin-top:12px;width:100%"; del.textContent="Supprimer cette séance";
@@ -622,6 +631,7 @@ function renderJournal(){
         if(!confirm("Supprimer toute la séance du "+frDate(g.date)+" ("+sessionLabel(g.session)+") ?")) return;
         const byEx={}; g.items.forEach(it=>{ (byEx[it.exId]=byEx[it.exId]||[]).push(it.idx); });
         Object.keys(byEx).forEach(exId=>{ byEx[exId].sort((a,b)=>b-a).forEach(i=>DB[exId].splice(i,1)); if(!DB[exId].length) delete DB[exId]; });
+        LOGGEDS=LOGGEDS.filter(x=>!(x.date===g.date && x.session===g.session)); saveLoggeds();
         saveDB(); delete journalOpen[key]; toast("Séance supprimée"); renderJournal();
       };
       card.appendChild(del);
@@ -889,6 +899,7 @@ function renderBilan(){
   // Adhérence
   const doneSess=new Set();
   Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.date>=mon && en.date<=end && en.session) doneSess.add(en.session); }));
+  LOGGEDS.forEach(s=>{ if(s.date>=mon && s.date<=end) doneSess.add(s.session); });
   const adh=document.createElement("div"); adh.className="card";
   adh.innerHTML=`<div class="ex-name" style="font-size:15px">Adhérence</div><div class="ex-target" style="margin-bottom:6px">${doneSess.size} / ${PROGRAM.length} séances faites cette semaine</div>`;
   PROGRAM.forEach(s=>{ const ok=doneSess.has(s.key); const r=document.createElement("div"); r.className="last"; r.style.cssText="display:flex;justify-content:space-between"; r.innerHTML=`<span>${s.label}</span><b style="color:${ok?"var(--green)":"#c25"}">${ok?"✓ faite":"✗ manquée"}</b>`; adh.appendChild(r); });
