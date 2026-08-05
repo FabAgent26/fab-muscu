@@ -141,6 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const APP_VERSION="v12";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -526,7 +527,8 @@ function latestRecord(){ let out=null,outDate="0000-00-00";
   return out;
 }
 function importData(text){
-  let obj; try{ obj=JSON.parse(text); }catch(e){ toast("Code invalide"); return; }
+  text = text.replace(/[“”„‟]/g,'"').replace(/[‘’‚‛]/g,"'").trim();
+  let obj; try{ obj=JSON.parse(text); }catch(e){ toast("Code invalide (vérifie le copier-coller)"); return; }
   let n=0;
   if(Array.isArray(obj.clear)){ obj.clear.forEach(exId=>{ if(DB[exId]){ delete DB[exId]; n++; } }); saveDB(); }
   if(Array.isArray(obj.meas)){ obj.meas.forEach(m=>{ if(!m.date||!m.v) return; MEAS=MEAS.filter(x=>x.date!==m.date); MEAS.push({date:m.date, v:m.v}); n++; }); MEAS.sort((a,b)=>a.date<b.date?-1:1); saveMeas(); }
@@ -564,8 +566,10 @@ function renderHome(){
   const imp=document.createElement("div"); imp.className="card";
   imp.innerHTML=`<div class="ex-name" style="font-size:14px">Importer des données</div><div class="ex-target" style="margin-bottom:6px">Colle le code fourni par Claude (mensurations, séances passées) puis Importer.</div>`;
   const ta=document.createElement("textarea"); ta.className="note"; ta.placeholder='{ "meas": [...], "db": {...} }';
+  ta.setAttribute("autocapitalize","off"); ta.setAttribute("autocorrect","off"); ta.spellcheck=false;
   const ib=document.createElement("button"); ib.className="save"; ib.style.marginTop="6px"; ib.textContent="Importer"; ib.onclick=()=>{ if(ta.value.trim()) importData(ta.value.trim()); else toast("Colle d'abord le code"); };
   imp.appendChild(ta); imp.appendChild(ib); mainEl.appendChild(imp);
+  const ver=document.createElement("div"); ver.className="hint"; ver.textContent="Muscu Fanny "+APP_VERSION; mainEl.appendChild(ver);
 }
 
 /* ================= Journal ================= */
