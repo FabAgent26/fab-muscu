@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="1.6";
+const APP_VERSION="1.7";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -149,6 +149,14 @@ const CUE_BSS = "Buste penché ~45°, appui loin devant, charge sentie sur le ta
 const SS = "Superset (enchaîné)";
 
 const PROGRAM = [
+  { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilatéral",
+    ex:[
+      {id:"hip_thrust_barre", name:"Hip thrust barre / haltère", sets:4, reps:"8", hint:"5 kg", hintKg:5, unit:"kg", rest:"60s"},
+      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
+      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
+    ]},
   { key:"HAUT_A", label:"Haut A", focus:"Épaules / posture",
     ex:[
       {id:"tirage_dos_assis", name:"Low row classique", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"plaq", rest:"60s"},
@@ -157,9 +165,9 @@ const PROGRAM = [
       {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
       {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
     ]},
-  { key:"BAS_A", label:"Bas A", focus:"Fessiers, volume bilatéral",
+  { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
     ex:[
-      {id:"hip_thrust_barre", name:"Hip thrust barre / haltère", sets:4, reps:"8", hint:"5 kg", hintKg:5, unit:"kg", rest:"60s"},
+      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
       {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
@@ -173,14 +181,6 @@ const PROGRAM = [
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
       {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
       {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"60s"},
-    ]},
-  { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
-    ex:[
-      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", unit:"pdc", rest:"60s"},
-      {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
-      {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
 ];
 
