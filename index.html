@@ -117,7 +117,7 @@
 <body>
 <header>
   <h1>Carnet Muscu Fanny</h1>
-  <div class="sub" id="subtitle">Programme Pareto, 4 séances / semaine</div>
+  <div class="sub" id="subtitle">Programme Cedric, 4 séances / semaine</div>
   <div class="top-actions">
     <button id="btn-export">Exporter pour le coach</button>
     <button id="btn-reset">Effacer aujourd'hui</button>
@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="v12";
+const APP_VERSION="v13";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -151,7 +151,7 @@ const SS = "Superset (enchaîné)";
 const PROGRAM = [
   { key:"HAUT_A", label:"Haut A", focus:"Épaules / posture",
     ex:[
-      {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"plaq", rest:"60s"},
+      {id:"tirage_dos_assis", name:"Low row classique", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"plaq", rest:"60s"},
       {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
@@ -167,7 +167,7 @@ const PROGRAM = [
     ]},
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
-      {id:"tirage_vertical", name:"Tirage vertical (poulie)", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"plaq", rest:"90s"},
+      {id:"tirage_vertical", name:"Tirage vertical", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"kg", rest:"60s"},
       {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"kg", rest:"75s"},
       {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"90s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
@@ -378,7 +378,7 @@ function renderTabs(){
   tabsEl.innerHTML="";
   TABS.forEach((s,i)=>{
     const b=document.createElement("button");
-    b.className="tab"+(i===currentTab?" active":"")+((s.journal||s.progres||s.poids||s.mens||s.bilan)?" tab-extra":"");
+    b.className="tab"+(i===currentTab?" active":"");
     b.textContent=s.label;
     b.onclick=()=>{ currentTab=i; renderTabs(); renderSession(); window.scrollTo(0,0); };
     tabsEl.appendChild(b);
@@ -539,7 +539,7 @@ function importData(text){
   toast(n+" élément(s) importé(s)"); currentTab=0; renderTabs(); renderSession();
 }
 function renderHome(){
-  document.getElementById("subtitle").textContent="Programme Pareto";
+  document.getElementById("subtitle").textContent="Programme Cedric";
   mainEl.innerHTML="";
   const g=document.createElement("div"); g.className="card"; g.style.cssText="background:var(--green);color:#fff;border:none";
   g.innerHTML=`<div style="font-size:20px;font-weight:700">Salut Fanny</div><div style="opacity:.85;font-size:13px;margin-top:2px">${frDateLong(todayStr())}</div>`;
@@ -712,6 +712,7 @@ function lineChart(points, opts){
   const d=points.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p.y).toFixed(1)).join(" ");
   g+=`<path d='${d}' fill='none' stroke='#43594B' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'></path>`;
   points.forEach((p,i)=>{ g+=`<circle cx='${X(i).toFixed(1)}' cy='${Y(p.y).toFixed(1)}' r='3.2' fill='#43594B'></circle>`; });
+  if(points.length<=12){ points.forEach((p,i)=>{ g+=`<text x='${X(i).toFixed(1)}' y='${(Y(p.y)-7).toFixed(1)}' font-size='9' fill='#20241f' text-anchor='middle' font-weight='700'>${p.y}</text>`; }); }
   [0,points.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>{ g+=`<text x='${X(i).toFixed(1)}' y='${H-6}' font-size='10' fill='#9a9f97' text-anchor='${i===0?"start":"end"}'>${points[i].x}</text>`; });
   return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>${g}</svg>`;
 }
@@ -970,7 +971,9 @@ renderTabs(); renderSession();
 // Le titre ramène à l'accueil
 const h1=document.querySelector("header h1"); if(h1){ h1.style.cursor="pointer"; h1.onclick=()=>goTab("HOME"); }
 // Rouvrir l'appli (revenir dessus) ramène à l'accueil
-document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ currentTab=0; renderTabs(); renderSession(); window.scrollTo(0,0); } });
+function goHome(){ currentTab=0; renderTabs(); renderSession(); window.scrollTo(0,0); }
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") goHome(); });
+window.addEventListener("pageshow", goHome);
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 </script>
 </body>
