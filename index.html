@@ -963,6 +963,10 @@ function toast(msg){ const el=document.getElementById("toast"); el.textContent=m
 
 /* ================= Init + service worker ================= */
 renderTabs(); renderSession();
+// Le titre ramène à l'accueil
+const h1=document.querySelector("header h1"); if(h1){ h1.style.cursor="pointer"; h1.onclick=()=>goTab("HOME"); }
+// Rouvrir l'appli (revenir dessus) ramène à l'accueil
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ currentTab=0; renderTabs(); renderSession(); window.scrollTo(0,0); } });
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 </script>
 </body>
