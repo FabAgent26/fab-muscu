@@ -152,7 +152,7 @@ const PROGRAM = [
     ex:[
       {id:"tirage_dos_assis", name:"Tirage dos assis (poulie)", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"lb", rest:"60s"},
       {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
-      {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", bw:true, rest:"60s"},
+      {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"lb", rest:"60s"},
       {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
     ]},
@@ -162,7 +162,7 @@ const PROGRAM = [
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
       {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", bw:true, rest:"15s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
     ]},
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
@@ -171,15 +171,15 @@ const PROGRAM = [
       {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"90s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
       {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"lb", rest:"45s"},
-      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", bw:true, rest:"45s"},
+      {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"45s"},
     ]},
   { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
     ex:[
-      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", bw:true, rest:"60s"},
+      {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:3, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:3, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
       {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:1, reps:"10", hint:"2 kg", hintKg:2, unit:"lb", rest:"60s"},
-      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", bw:true, rest:"15s"},
+      {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"15s"},
     ]},
 ];
 
@@ -249,6 +249,7 @@ function summarizeSets(entry){
   const unit=entry.unit||"kg";
   return (entry.sets||[]).filter(s=>(s.w||s.r)).map(s=>{
     const w=(s.w==null?"":String(s.w)).trim(), r=(s.r==null?"":String(s.r)).trim();
+    if(unit==="pdc") return r||w;
     if(w&&r) return w+" "+unit+" × "+r;
     if(w) return w+" "+unit;
     return r;
@@ -260,7 +261,7 @@ function entryScore(entry){
   let bestKg=null,bestReps=null,bestR=null;
   (entry.sets||[]).forEach(s=>{
     const w=parseNum(s.w), r=parseNum(s.r);
-    if(w!=null){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
+    if(w!=null && unit!=="pdc"){ const kg=toKg(w,unit); if(bestKg==null||kg>bestKg){ bestKg=kg; bestReps=r; } }
     if(r!=null && (bestR==null||r>bestR)) bestR=r;
   });
   if(bestKg!=null) return {val:bestKg,type:"kg",label:fmtKg(bestKg)+" kg"+(bestReps!=null?(" × "+bestReps):"")};
@@ -330,18 +331,18 @@ function exerciseCard(e, sess){
 
   // en-tête + sélecteur d'unité
   const head=document.createElement("div"); head.className="ex-head";
-  const lbApprox = (!e.bw && e.hintKg && unit==="lb") ? (" (≈ "+lbFromKg(e.hintKg)+" lb)") : "";
+  const lbApprox = (e.hintKg && unit==="lb") ? (" (≈ "+lbFromKg(e.hintKg)+" lb)") : "";
   head.innerHTML=`<div>
       ${e.ss?`<span class="ss-tag">${e.ss}</span><br>`:""}
       <div class="ex-name">${e.name}</div>
       <div class="ex-target">Objectif : ${e.sets} × ${e.reps} · conseillé : ${e.hint}${lbApprox} · repos ${e.rest}</div>
     </div>`;
   card.appendChild(head);
-  if(!e.bw){
+  {
     const uwrap=document.createElement("div"); uwrap.style.cssText="margin-top:8px;display:flex;align-items:center;gap:8px";
-    uwrap.innerHTML=`<span class="ex-target">Unité de la machine :</span>`;
+    uwrap.innerHTML=`<span class="ex-target">Unité :</span>`;
     const sel=document.createElement("select"); sel.className="unit-sel";
-    ["kg","lb"].forEach(u=>{ const o=document.createElement("option"); o.value=u; o.textContent=u; if(u===unit)o.selected=true; sel.appendChild(o); });
+    [["kg","kg"],["lb","lb"],["pdc","poids du corps"]].forEach(([v,lab])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lab; if(v===unit)o.selected=true; sel.appendChild(o); });
     sel.onchange=()=>{ UNITS[e.id]=sel.value; saveUnits(); const te=todayEntryOf(e.id,sess); if(te){ te.unit=sel.value; saveDB(); } renderSession(); };
     uwrap.appendChild(sel); card.appendChild(uwrap);
   }
@@ -363,15 +364,13 @@ function exerciseCard(e, sess){
 
   function suggestVal(i){
     if(prevE && prevE.sets[i]) return {w:prevE.sets[i].w, r:prevE.sets[i].r};
-    if(e.bw) return {w:"", r:e.reps};
+    if(unit==="pdc") return {w:"", r:e.reps};
     if(e.hintKg){ const w = unit==="lb" ? lbFromKg(e.hintKg) : e.hintKg; return {w:String(w), r:e.reps}; }
     return {w:"", r:e.reps};
   }
   function saveFromUI(){
     const rows=[...setsWrap.querySelectorAll(".setrow")];
-    const sets=rows.filter(r=>r.classList.contains("done")).map(r=>({
-      w:r.querySelector(".w").value.trim(), r:r.querySelector(".r").value.trim()
-    })).filter(s=>s.w||s.r);
+    const sets=rows.filter(r=>r.classList.contains("done")).map(r=>{ const wEl=r.querySelector(".w"); return { w:wEl?wEl.value.trim():"", r:r.querySelector(".r").value.trim() }; }).filter(s=>s.w||s.r);
     DB[e.id]=DB[e.id]||[];
     const h=DB[e.id];
     const isTodays = h.length && h[h.length-1].date===todayStr() && h[h.length-1].session===sess;
@@ -384,8 +383,9 @@ function exerciseCard(e, sess){
   function makeRow(val, done){
     const row=document.createElement("div"); row.className="setrow"+(done?" done":"");
     const i=setsWrap.children.length;
+    const wField = unit==="pdc" ? "" : `<div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" placeholder="${unit}" value="${val&&val.w!=null?val.w:""}"></div>`;
     row.innerHTML=`<div class="n">${i+1}</div>
-      <div class="field"><label>Poids ${e.bw?"":("("+unit+")")}</label><input type="text" inputmode="decimal" class="w" placeholder="${e.bw?"PDC":unit}" value="${val&&val.w!=null?val.w:""}"></div>
+      ${wField}
       <div class="field"><label>Reps</label><input type="text" inputmode="text" class="r" placeholder="${e.reps}" value="${val&&val.r!=null?val.r:""}"></div>
       <button class="tick${done?" on":""}" title="Valider la série">✓</button>`;
     const tick=row.querySelector(".tick");
@@ -401,7 +401,7 @@ function exerciseCard(e, sess){
       } else toast("Série retirée");
       renderSession();
     };
-    row.querySelector(".w").oninput=()=>{ if(row.classList.contains("done")) saveFromUI(); };
+    const wEl2=row.querySelector(".w"); if(wEl2) wEl2.oninput=()=>{ if(row.classList.contains("done")) saveFromUI(); };
     row.querySelector(".r").oninput=()=>{ if(row.classList.contains("done")) saveFromUI(); };
     setsWrap.appendChild(row);
   }
@@ -410,7 +410,7 @@ function exerciseCard(e, sess){
 
   const actions=document.createElement("div"); actions.className="card-actions";
   const add=document.createElement("button"); add.className="addset"; add.textContent="+ série";
-  add.onclick=()=> makeRow(e.bw?{w:"",r:e.reps}:suggestVal(setsWrap.children.length), false);
+  add.onclick=()=> makeRow(unit==="pdc"?{w:"",r:e.reps}:suggestVal(setsWrap.children.length), false);
   actions.appendChild(add); card.appendChild(actions);
   return card;
 }
@@ -490,13 +490,15 @@ function renderJournal(){
 function journalEditBlock(exId, idx){
   const wrap=document.createElement("div"); wrap.style.cssText="border-top:1px solid var(--line);padding-top:10px;margin-top:10px";
   const entry=DB[exId][idx]; const unit=entry.unit||"kg";
-  const title=document.createElement("div"); title.className="ex-name"; title.style.fontSize="14px"; title.textContent=(EX_NAME[exId]||exId)+" ("+unit+")"; wrap.appendChild(title);
+  const unitLabel = unit==="pdc" ? "poids du corps" : unit;
+  const title=document.createElement("div"); title.className="ex-name"; title.style.fontSize="14px"; title.textContent=(EX_NAME[exId]||exId)+" ("+unitLabel+")"; wrap.appendChild(title);
   const setsWrap=document.createElement("div"); setsWrap.className="sets"; wrap.appendChild(setsWrap);
   function renum(){ [...setsWrap.children].forEach((r,i)=>r.querySelector(".n").textContent=i+1); }
   function addRow(val){
     const i=setsWrap.children.length; const row=document.createElement("div"); row.className="setrow";
+    const wField = unit==="pdc" ? "" : `<div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" value="${val&&val.w!=null?val.w:""}"></div>`;
     row.innerHTML=`<div class="n">${i+1}</div>
-      <div class="field"><label>Poids (${unit})</label><input type="text" inputmode="decimal" class="w" value="${val&&val.w!=null?val.w:""}"></div>
+      ${wField}
       <div class="field"><label>Reps</label><input type="text" class="r" value="${val&&val.r!=null?val.r:""}"></div>
       <button class="rm">×</button>`;
     row.querySelector(".rm").onclick=()=>{ row.remove(); renum(); };
@@ -506,7 +508,7 @@ function journalEditBlock(exId, idx){
   const acts=document.createElement("div"); acts.className="card-actions";
   const add=document.createElement("button"); add.className="addset"; add.textContent="+ série"; add.onclick=()=>addRow(null);
   const save=document.createElement("button"); save.className="save"; save.textContent="Enregistrer les modifs";
-  save.onclick=()=>{ const sets=[...setsWrap.querySelectorAll(".setrow")].map(r=>({w:r.querySelector(".w").value.trim(), r:r.querySelector(".r").value.trim()})).filter(s=>s.w||s.r); DB[exId][idx].sets=sets; saveDB(); toast("Modifié"); };
+  save.onclick=()=>{ const sets=[...setsWrap.querySelectorAll(".setrow")].map(r=>{ const wEl=r.querySelector(".w"); return {w:wEl?wEl.value.trim():"", r:r.querySelector(".r").value.trim()}; }).filter(s=>s.w||s.r); DB[exId][idx].sets=sets; saveDB(); toast("Modifié"); };
   acts.appendChild(add); acts.appendChild(save); wrap.appendChild(acts);
   return wrap;
 }
