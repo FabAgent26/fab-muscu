@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.1";
+const APP_VERSION="2.2";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -533,6 +533,14 @@ function noteCard(date, sessionKey){
 
 /* ================= Accueil ================= */
 function goTab(key){ const i=TABS.findIndex(t=>t.key===key); if(i>=0){ currentTab=i; renderTabs(); renderSession(); window.scrollTo(0,0); } }
+async function forceUpdate(){
+  toast("Mise à jour...");
+  try{
+    if("serviceWorker" in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs){ await r.unregister(); } }
+    if("caches" in window){ const ks=await caches.keys(); for(const k of ks){ await caches.delete(k); } }
+  }catch(e){}
+  location.reload();
+}
 function lastSessionDate(key){ let d=null; Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.session===key && (d==null||en.date>d)) d=en.date; })); return d; }
 function nextSession(){ let best=PROGRAM[0].key, bestDate="9999-99-99"; PROGRAM.forEach(s=>{ const d=lastSessionDate(s.key)||"0000-00-00"; if(d<bestDate){ bestDate=d; best=s.key; } }); return best; }
 function latestRecord(){ let out=null,outDate="0000-00-00";
@@ -595,6 +603,7 @@ function renderHome(){
   const ib=document.createElement("button"); ib.className="save"; ib.style.marginTop="6px"; ib.textContent="Importer"; ib.onclick=()=>{ if(ta.value.trim()) importData(ta.value.trim()); else toast("Colle d'abord le code"); };
   imp.appendChild(ta); imp.appendChild(ib); mainEl.appendChild(imp);
   const ver=document.createElement("div"); ver.className="hint"; ver.textContent="Muscu Fanny "+APP_VERSION; mainEl.appendChild(ver);
+  const upd=document.createElement("button"); upd.className="addset"; upd.style.cssText="display:block;margin:8px auto 0"; upd.textContent="Mettre à jour l'appli"; upd.onclick=forceUpdate; mainEl.appendChild(upd);
 }
 
 /* ================= Journal ================= */
