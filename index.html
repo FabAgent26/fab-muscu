@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.9";
+const APP_VERSION="3.0";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -247,19 +247,19 @@ const PM_PROJ=[
 /* ================= Stockage ================= */
 const STORE_KEY="muscu_fanny_v1";
 function loadDB(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{}; }catch(e){ return {}; } }
-function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); pushLogSoon(); }
 let DB=loadDB();
 
 const UNITS_KEY="muscu_fanny_units_v1";
 function loadUnits(){ try{ return JSON.parse(localStorage.getItem(UNITS_KEY))||{}; }catch(e){ return {}; } }
-function saveUnits(){ localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
+function saveUnits(){ localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); pushLogSoon(); }
 let UNITS=loadUnits();
 function unitOf(exId){ return UNITS[exId] || defUnit(exId); }
 
 /* Objectifs & remarques définis par le coach (par exercice). Priment sur les valeurs par défaut. */
 const COACH_KEY="muscu_fanny_coach_v1";
 function loadCoach(){ try{ return JSON.parse(localStorage.getItem(COACH_KEY))||{}; }catch(e){ return {}; } }
-function saveCoach(){ localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); }
+function saveCoach(){ localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); pushCoachSoon(); }
 let COACH=loadCoach();
 function setCoach(id, field, val){
   if(!COACH[id]) COACH[id]={};
@@ -286,27 +286,27 @@ function entryInCurrentUnit(exId, en){ return unitFamily(en.unit||defUnit(exId))
 
 const NOTES_KEY="muscu_fanny_notes_v1";
 function loadNotes(){ try{ return JSON.parse(localStorage.getItem(NOTES_KEY))||{}; }catch(e){ return {}; } }
-function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(NOTES)); }
+function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(NOTES)); pushLogSoon(); }
 let NOTES=loadNotes();
 
 const BW_KEY="muscu_fanny_bw_v1";
 function loadBW(){ try{ return JSON.parse(localStorage.getItem(BW_KEY))||[]; }catch(e){ return []; } }
-function saveBW(){ localStorage.setItem(BW_KEY, JSON.stringify(BW)); }
+function saveBW(){ localStorage.setItem(BW_KEY, JSON.stringify(BW)); pushLogSoon(); }
 let BW=loadBW();
 
 const MEAS_KEY="muscu_fanny_mens_v1";
 function loadMeas(){ try{ return JSON.parse(localStorage.getItem(MEAS_KEY))||[]; }catch(e){ return []; } }
-function saveMeas(){ localStorage.setItem(MEAS_KEY, JSON.stringify(MEAS)); }
+function saveMeas(){ localStorage.setItem(MEAS_KEY, JSON.stringify(MEAS)); pushLogSoon(); }
 let MEAS=loadMeas();
 
 function loadPM(){ try{ const s=localStorage.getItem(PM_KEY); return s?JSON.parse(s):JSON.parse(JSON.stringify(PM_DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(PM_DEFAULT)); } }
-function savePM(){ localStorage.setItem(PM_KEY, JSON.stringify(PM)); }
+function savePM(){ localStorage.setItem(PM_KEY, JSON.stringify(PM)); pushLogSoon(); }
 let PM=loadPM();
 
 /* Séances faites sans détail (juste une date) : [{date, session}] */
 const LOGGED_KEY="muscu_fanny_loggeds_v1";
 function loadLoggeds(){ try{ return JSON.parse(localStorage.getItem(LOGGED_KEY))||[]; }catch(e){ return []; } }
-function saveLoggeds(){ localStorage.setItem(LOGGED_KEY, JSON.stringify(LOGGEDS)); }
+function saveLoggeds(){ localStorage.setItem(LOGGED_KEY, JSON.stringify(LOGGEDS)); pushLogSoon(); }
 let LOGGEDS=loadLoggeds();
 
 function isoOf(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -318,6 +318,66 @@ function weekSets(mondayIso){
     (DB[exId]||[]).forEach(en=>{ if(en.date>=mondayIso && en.date<=end){ const n=(en.sets||[]).length; ms.forEach(m=>{ c[m]=(c[m]||0)+n; }); } });
   });
   return c;
+}
+
+/* ================= Synchronisation en ligne (Supabase) ================= */
+const SB_URL="https://ojzkrrvbwrqxqoqbjujk.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qemtycnZid3JxeHFvcWJqdWprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5OTE5NDgsImV4cCI6MjEwMTU2Nzk0OH0.DtlJSj5-MPXPNBJvPBLcJ519eGHEFH6jQOkZtr8hCz4";
+const SB_ON=!!(SB_URL && SB_KEY);
+const SB_HEAD={ "apikey":SB_KEY, "Authorization":"Bearer "+SB_KEY, "Content-Type":"application/json" };
+let SB_LIVE=false, _applying=false, _logSeen=0, _logT=null, _coachT=null;
+async function sbGet(key){
+  try{ const r=await fetch(SB_URL+"/rest/v1/sync?select=data,updated_at&key=eq."+encodeURIComponent(key), {headers:SB_HEAD});
+    if(!r.ok) return null; SB_LIVE=true; const rows=await r.json(); return (rows&&rows[0])?rows[0]:null;
+  }catch(e){ return null; }
+}
+async function sbPut(key, data){
+  try{ const r=await fetch(SB_URL+"/rest/v1/sync", { method:"POST",
+      headers:Object.assign({}, SB_HEAD, {"Prefer":"resolution=merge-duplicates,return=minimal"}),
+      body:JSON.stringify({key, data, updated_at:new Date().toISOString()}) });
+    if(r.ok) SB_LIVE=true; return r.ok;
+  }catch(e){ return false; }
+}
+function collectLog(){ return {DB, UNITS, NOTES, BW, MEAS, PM, LOGGEDS}; }
+function applyLog(d){ if(!d) return;
+  if(d.DB){ DB=d.DB; localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+  if(d.UNITS){ UNITS=d.UNITS; localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
+  if(d.NOTES){ NOTES=d.NOTES; localStorage.setItem(NOTES_KEY, JSON.stringify(NOTES)); }
+  if(d.BW){ BW=d.BW; localStorage.setItem(BW_KEY, JSON.stringify(BW)); }
+  if(d.MEAS){ MEAS=d.MEAS; localStorage.setItem(MEAS_KEY, JSON.stringify(MEAS)); }
+  if(d.PM){ PM=d.PM; localStorage.setItem(PM_KEY, JSON.stringify(PM)); }
+  if(d.LOGGEDS){ LOGGEDS=d.LOGGEDS; localStorage.setItem(LOGGED_KEY, JSON.stringify(LOGGEDS)); }
+}
+function pushLogSoon(){ if(!SB_ON||_applying) return; clearTimeout(_logT); _logT=setTimeout(()=>{ _logSeen=Date.now()+5000; sbPut("log", collectLog()); }, 800); }
+function pushCoachSoon(){ if(!SB_ON||_applying) return; clearTimeout(_coachT); _coachT=setTimeout(()=>{ sbPut("coach", COACH); }, 600); }
+async function syncPull(){
+  if(!SB_ON) return;
+  const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName)) return;
+  const res=await Promise.all([sbGet("coach"), sbGet("log")]); const coach=res[0], log=res[1];
+  let changed=false;
+  if(coach && JSON.stringify(coach.data||{})!==JSON.stringify(COACH)){
+    _applying=true; COACH=coach.data||{}; localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); _applying=false; changed=true;
+  }
+  if(log){ const t=Date.parse(log.updated_at||"")||0;
+    if(t>_logSeen && JSON.stringify(log.data||{})!==JSON.stringify(collectLog())){
+      _applying=true; applyLog(log.data); _applying=false; _logSeen=t; changed=true;
+    }
+  }
+  if(changed) renderSession();
+}
+async function syncInit(){
+  if(!SB_ON) return;
+  clearTimeout(_logT); clearTimeout(_coachT);
+  const res=await Promise.all([sbGet("coach"), sbGet("log")]); const coach=res[0], log=res[1];
+  if(coach && coach.data){ _applying=true; COACH=coach.data; localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); _applying=false; }
+  else if(COACH && Object.keys(COACH).length){ sbPut("coach", COACH); }
+  if(log && log.data && Object.keys(log.data).length){ _applying=true; applyLog(log.data); _applying=false; _logSeen=Date.parse(log.updated_at||"")||Date.now(); }
+  else { _logSeen=Date.now()+5000; sbPut("log", collectLog()); }
+  renderTabs(); renderSession();
+  if(SB_LIVE) toast("Espace en ligne connecté ✓");
+  setInterval(syncPull, 15000);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) syncPull(); });
+  window.addEventListener("online", syncPull);
 }
 
 /* Migration : les anciennes entrées sans unité prennent l'unité par défaut de l'exo. */
@@ -1132,7 +1192,7 @@ let toastT=null;
 function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),1700); }
 
 /* ================= Init + service worker ================= */
-renderTabs(); renderSession();
+renderTabs(); renderSession(); syncInit();
 // Le titre ramène à l'accueil
 const h1=document.querySelector("header h1"); if(h1){ h1.style.cursor="pointer"; h1.onclick=()=>goTab("HOME"); }
 // Rouvrir l'appli (revenir dessus) ramène à l'accueil
