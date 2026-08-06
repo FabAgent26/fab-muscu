@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="3.0";
+const APP_VERSION="3.1";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -339,6 +339,8 @@ async function sbPut(key, data){
   }catch(e){ return false; }
 }
 function collectLog(){ return {DB, UNITS, NOTES, BW, MEAS, PM, LOGGEDS}; }
+/* "A de vraies données" = au moins un exercice enregistré. Protège contre l'écrasement par un appareil vide. */
+function logHasData(d){ return !!(d && d.DB && Object.keys(d.DB).length); }
 function applyLog(d){ if(!d) return;
   if(d.DB){ DB=d.DB; localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
   if(d.UNITS){ UNITS=d.UNITS; localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
@@ -358,7 +360,7 @@ async function syncPull(){
   if(coach && JSON.stringify(coach.data||{})!==JSON.stringify(COACH)){
     _applying=true; COACH=coach.data||{}; localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); _applying=false; changed=true;
   }
-  if(log){ const t=Date.parse(log.updated_at||"")||0;
+  if(log && logHasData(log.data)){ const t=Date.parse(log.updated_at||"")||0;
     if(t>_logSeen && JSON.stringify(log.data||{})!==JSON.stringify(collectLog())){
       _applying=true; applyLog(log.data); _applying=false; _logSeen=t; changed=true;
     }
@@ -371,8 +373,8 @@ async function syncInit(){
   const res=await Promise.all([sbGet("coach"), sbGet("log")]); const coach=res[0], log=res[1];
   if(coach && coach.data){ _applying=true; COACH=coach.data; localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); _applying=false; }
   else if(COACH && Object.keys(COACH).length){ sbPut("coach", COACH); }
-  if(log && log.data && Object.keys(log.data).length){ _applying=true; applyLog(log.data); _applying=false; _logSeen=Date.parse(log.updated_at||"")||Date.now(); }
-  else { _logSeen=Date.now()+5000; sbPut("log", collectLog()); }
+  if(log && logHasData(log.data)){ _applying=true; applyLog(log.data); _applying=false; _logSeen=Date.parse(log.updated_at||"")||Date.now(); }
+  else if(logHasData(collectLog())){ _logSeen=Date.now()+5000; sbPut("log", collectLog()); }
   renderTabs(); renderSession();
   if(SB_LIVE) toast("Espace en ligne connecté ✓");
   setInterval(syncPull, 15000);
