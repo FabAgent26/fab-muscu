@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="3.1";
+const APP_VERSION="3.2";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -188,14 +188,13 @@ const EX_NAME={}, EX_DEF={};
 PROGRAM.forEach(s=>s.ex.forEach(e=>{ EX_NAME[e.id]=e.name; if(!EX_DEF[e.id]) EX_DEF[e.id]=e; }));
 function defUnit(exId){ const e=EX_DEF[exId]; return e && e.unit ? e.unit : "kg"; }
 
-const TABS = [{key:"HOME", label:"Accueil", home:true}]
+const TABS = [{key:"HOME", label:"Accueil", home:true}, {key:"COACH", label:"Coach", coach:true}]
   .concat([
     {key:"BILAN",   label:"Bilan",   bilan:true},
     {key:"PROGRES", label:"Progrès", progres:true},
     {key:"POIDS",   label:"Poids",   poids:true},
     {key:"MENS",    label:"Mensurations", mens:true},
     {key:"JOURNAL", label:"Journal", journal:true},
-    {key:"COACH",   label:"Coach",   coach:true},
   ])
   .concat(PROGRAM);
 
