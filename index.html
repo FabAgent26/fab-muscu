@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.3";
+const APP_VERSION="2.4";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -254,6 +254,11 @@ function loadUnits(){ try{ return JSON.parse(localStorage.getItem(UNITS_KEY))||{
 function saveUnits(){ localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
 let UNITS=loadUnits();
 function unitOf(exId){ return UNITS[exId] || defUnit(exId); }
+/* kg et lb sont comparables (converties en kg) ; plaq et pdc sont des familles à part. */
+function unitFamily(u){ u=u||"kg"; return (u==="kg"||u==="lb") ? "kg" : u; }
+/* Un record ne compare QUE les séances enregistrées dans l'unité actuelle de l'exo.
+   Sinon une vieille séance en kg (chiffre ~20) écrase une séance en plaquette (niveau ~2). */
+function entryInCurrentUnit(exId, en){ return unitFamily(en.unit||defUnit(exId)) === unitFamily(unitOf(exId)); }
 
 const NOTES_KEY="muscu_fanny_notes_v1";
 function loadNotes(){ try{ return JSON.parse(localStorage.getItem(NOTES_KEY))||{}; }catch(e){ return {}; } }
@@ -354,12 +359,12 @@ function entryScore(entry){
 }
 function bestScoreBefore(exId, beforeIdx){
   const h=DB[exId]||[]; let best=null;
-  for(let i=0;i<beforeIdx && i<h.length;i++){ const sc=entryScore(h[i]); if(sc && (best==null||sc.val>best)) best=sc.val; }
+  for(let i=0;i<beforeIdx && i<h.length;i++){ if(!entryInCurrentUnit(exId,h[i])) continue; const sc=entryScore(h[i]); if(sc && (best==null||sc.val>best)) best=sc.val; }
   return best;
 }
 function bestScoreEver(exId){
   const h=DB[exId]||[]; let best=null;
-  h.forEach(e=>{ const sc=entryScore(e); if(sc && (best==null||sc.val>best.val)) best=sc; });
+  h.forEach(e=>{ if(!entryInCurrentUnit(exId,e)) return; const sc=entryScore(e); if(sc && (best==null||sc.val>best.val)) best=sc; });
   return best;
 }
 /* Affiche un score en kg, avec l'équivalent lb entre parenthèses si l'exo est en lb. */
@@ -544,7 +549,7 @@ async function forceUpdate(){
 function lastSessionDate(key){ let d=null; Object.keys(DB).forEach(exId=>DB[exId].forEach(en=>{ if(en.session===key && (d==null||en.date>d)) d=en.date; })); return d; }
 function nextSession(){ let best=PROGRAM[0].key, bestDate="9999-99-99"; PROGRAM.forEach(s=>{ const d=lastSessionDate(s.key)||"0000-00-00"; if(d<bestDate){ bestDate=d; best=s.key; } }); return best; }
 function latestRecord(){ let out=null,outDate="0000-00-00";
-  Object.keys(DB).forEach(exId=>{ const sc=bestScoreEver(exId); if(!sc) return; let d=null; DB[exId].forEach(en=>{ const s=entryScore(en); if(s && s.val===sc.val && (d==null||en.date>d)) d=en.date; }); if(d && d>outDate){ outDate=d; out={exId, sc}; } });
+  Object.keys(DB).forEach(exId=>{ const sc=bestScoreEver(exId); if(!sc) return; let d=null; DB[exId].forEach(en=>{ if(!entryInCurrentUnit(exId,en)) return; const s=entryScore(en); if(s && s.val===sc.val && (d==null||en.date>d)) d=en.date; }); if(d && d>outDate){ outDate=d; out={exId, sc}; } });
   return out;
 }
 function importData(text){
@@ -899,7 +904,7 @@ function prsInWeek(mon){
   const end=addDaysIso(mon,6); const out=[];
   Object.keys(DB).forEach(exId=>{ const h=DB[exId]; if(h.length<2) return;
     let bestBefore=null, bestWk=null, bestWkSc=null;
-    h.forEach(en=>{ const s=entryScore(en); if(!s) return; if(en.date<mon){ if(bestBefore==null||s.val>bestBefore) bestBefore=s.val; } else if(en.date<=end){ if(bestWk==null||s.val>bestWk){ bestWk=s.val; bestWkSc=s; } } });
+    h.forEach(en=>{ if(!entryInCurrentUnit(exId,en)) return; const s=entryScore(en); if(!s) return; if(en.date<mon){ if(bestBefore==null||s.val>bestBefore) bestBefore=s.val; } else if(en.date<=end){ if(bestWk==null||s.val>bestWk){ bestWk=s.val; bestWkSc=s; } } });
     if(bestWk!=null && bestBefore!=null && bestWk>bestBefore) out.push({exId, sc:bestWkSc});
   });
   return out;
