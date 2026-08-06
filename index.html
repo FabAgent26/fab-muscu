@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.8";
+const APP_VERSION="2.9";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -649,6 +649,14 @@ function renderCoach(){
     const h=document.createElement("div");
     h.innerHTML=`<div class="ex-name">${e.name}</div><div class="ex-target">${sessions} · unité : ${unitLabel}</div>`;
     card.appendChild(h);
+
+    // Ce que Fanny a réellement réalisé (pour que le coach cale les objectifs dessus)
+    const last=(DB[e.id]||[]).slice(-1)[0]; const rec=bestScoreEver(e.id);
+    const perf=document.createElement("div"); perf.className="last"; perf.style.cssText="margin-top:8px;background:#eef6ef;color:var(--green)";
+    perf.innerHTML = last
+      ? `<b>Dernière perf de Fanny</b> (${daysAgo(last.date)}) : ${summarizeSets(last)||"-"}`+(rec?` · <b>Record</b> : ${withLb(e.id,rec)}`:"")
+      : "<b>Dernière perf de Fanny</b> : pas encore de séance enregistrée pour cet exercice.";
+    card.appendChild(perf);
 
     const grid=document.createElement("div"); grid.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px";
     function field(label, cur, def, save, inputmode){
