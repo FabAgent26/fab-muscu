@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.4";
+const APP_VERSION="2.5";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -154,32 +154,32 @@ const PROGRAM = [
       {id:"hip_thrust_barre", name:"Hip thrust barre / haltère", sets:4, reps:"8", hint:"5 kg", hintKg:5, unit:"kg", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:4, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:4, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:3, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:3, reps:"10", hint:"niveau 2", hintKg:2, unit:"plaq", rest:"60s"},
       {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
   { key:"HAUT_A", label:"Haut A", focus:"Épaules / posture",
     ex:[
-      {id:"tirage_dos_assis", name:"Low row classique", sets:4, reps:"8", hint:"25 kg", hintKg:25, unit:"plaq", rest:"60s"},
+      {id:"tirage_dos_assis", name:"Low row classique", sets:4, reps:"8", hint:"niveau 8", hintKg:8, unit:"plaq", rest:"60s"},
       {id:"dev_epaules_arnold", name:"Développé épaules Arnold", sets:3, reps:"8", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"pompes_inclinees", name:"Pompes (inclinées)", sets:3, reps:"6", hint:"PDC", unit:"pdc", rest:"60s"},
-      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
+      {id:"face_pull", name:"Face pull ou oiseau (poulie)", sets:3, reps:"10", hint:"niveau 4", hintKg:4, unit:"plaq", rest:"60s"},
+      {id:"triceps_corde", name:"Triceps à la corde (poulie)", sets:2, reps:"14", hint:"niveau 4", hintKg:4, unit:"plaq", rest:"60s"},
     ]},
   { key:"BAS_B", label:"Bas B", focus:"Fessiers, unilatéral",
     ex:[
       {id:"hip_thrust_uni", name:"Hip thrust barre - Unilatéral", sets:4, reps:"8 / jambe", hint:"PDC", unit:"pdc", rest:"60s"},
       {id:"bulgarian_split_squat", name:"Bulgarian split squat", sets:4, reps:"7 / jambe", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s", ss:SS, cue:CUE_BSS},
       {id:"bstance_rdl", name:"B-Stance RDL", sets:4, reps:"7", hint:"2 x 5 kg", hintKg:5, unit:"kg", rest:"60s", ss:SS},
-      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:3, reps:"10", hint:"2 kg", hintKg:2, unit:"plaq", rest:"60s"},
+      {id:"abduction_hanche", name:"Abduction de hanche à la poulie", sets:3, reps:"10", hint:"niveau 2", hintKg:2, unit:"plaq", rest:"60s"},
       {id:"gainage_mains", name:"Gainage sur les mains", sets:3, reps:"30s", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
   { key:"HAUT_B", label:"Haut B", focus:"Tirer / posture",
     ex:[
       {id:"tirage_vertical", name:"Tirage vertical", sets:3, reps:"10", hint:"20 kg", hintKg:20, unit:"kg", rest:"60s"},
-      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"6 kg", hintKg:6, unit:"plaq", rest:"60s"},
+      {id:"low_row_uni", name:"Low row unilatéral", sets:3, reps:"10-12 / côté", hint:"niveau 6", hintKg:6, unit:"plaq", rest:"60s"},
       {id:"dev_couche", name:"Développé couché", sets:3, reps:"15", hint:"6 kg", hintKg:6, unit:"kg", rest:"60s"},
       {id:"elevations_laterales", name:"Élévations latérales", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"kg", rest:"60s"},
-      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"4 kg", hintKg:4, unit:"plaq", rest:"60s"},
+      {id:"triceps_corde", name:"Triceps à la corde", sets:3, reps:"14", hint:"niveau 4", hintKg:4, unit:"plaq", rest:"60s"},
       {id:"prone_ytw", name:"Prone Y-T-W / prone cobra", sets:3, reps:"12", hint:"PDC", unit:"pdc", rest:"60s"},
     ]},
 ];
@@ -319,16 +319,47 @@ function toKg(v,unit){ return unit==="lb" ? v*0.453592 : v; }
 function fmtKg(v){ v=Math.round(v*10)/10; return Number.isInteger(v)?String(v):v.toFixed(1); }
 function lbFromKg(kg){ return Math.round(kg*2.20462); }
 
+/* "8" -> "8 répétitions" ; "7 / jambe" -> "7 répétitions par jambe" ;
+   "10-12 / côté" -> "10 à 12 répétitions par côté" ; "30s" -> "30 secondes". */
+function frReps(reps){
+  let r=String(reps==null?"":reps).trim(); let suffix="";
+  const m=r.match(/\/\s*(jambes?|c[oô]t[eé]s?)/i);
+  if(m){ suffix=(/^c/i.test(m[1])?" par côté":" par jambe"); r=r.slice(0,m.index).trim(); }
+  if(/^\d+\s*s$/i.test(r)) return r.replace(/\s*s$/i,"")+" secondes"+suffix;
+  r=r.replace(/\s*-\s*/," à ");
+  return r+" répétitions"+suffix;
+}
+/* Charge affichée selon l'unité : "à 5 kg" / "au niveau 2" / "" (poids du corps). */
+function loadClause(unit,w){
+  w=(w==null?"":String(w)).trim(); if(!w) return "";
+  if(unit==="plaq") return "au niveau "+w;
+  if(unit==="pdc") return "";
+  return "à "+w+" "+unit;
+}
+/* Charge conseillée affichée selon l'unité de l'exo : niveau de plaquette, kg, ou poids du corps. */
+function conseilOf(e, unit){
+  if(unit==="pdc") return "poids du corps";
+  if(unit==="plaq") return e.hintKg!=null ? ("niveau "+e.hintKg) : (e.hint||"-");
+  let s=e.hint||"-";
+  if(e.hintKg && unit==="lb") s+=" (≈ "+lbFromKg(e.hintKg)+" lb)";
+  return s;
+}
+/* "Dernière fois" en clair : "4 séries de 12 répétitions (poids du corps)", etc. */
 function summarizeSets(entry){
   const unit=entry.unit||"kg";
-  return (entry.sets||[]).filter(s=>(s.w||s.r)).map(s=>{
-    const w=(s.w==null?"":String(s.w)).trim(), r=(s.r==null?"":String(s.r)).trim();
-    if(unit==="pdc") return r||w;
-    if(unit==="plaq"){ if(w&&r) return "niv "+w+" × "+r; if(w) return "niv "+w; return r; }
-    if(w&&r) return w+" "+unit+" × "+r;
-    if(w) return w+" "+unit;
-    return r;
-  }).join("   ");
+  const sets=(entry.sets||[]).filter(s=>(s.w||s.r));
+  if(!sets.length) return "";
+  const n=sets.length, serie=n+" série"+(n>1?"s":"");
+  const reps=sets.map(s=>(s.r==null?"":String(s.r)).trim());
+  const loads=sets.map(s=>(s.w==null?"":String(s.w)).trim());
+  const sameR=reps.every(r=>r===reps[0]), sameW=loads.every(l=>l===loads[0]);
+  const repStr = r => r ? frReps(r) : "";
+  if(unit==="pdc"){
+    if(sameR && reps[0]) return serie+" de "+repStr(reps[0])+" (poids du corps)";
+    return "poids du corps : "+reps.map(r=>r||"?").join(", ");
+  }
+  if(sameR && sameW && reps[0]){ const lc=loadClause(unit,loads[0]); return serie+" de "+repStr(reps[0])+(lc?" "+lc:""); }
+  return sets.map((s,i)=>{ const lc=loadClause(unit,loads[i]); const rp=reps[i]?frReps(reps[i]):""; if(lc&&rp) return rp+" "+lc; return lc||rp; }).join(", ");
 }
 /* score en kg (pour progrès/records) ; si pas de poids -> reps */
 function entryScore(entry){
@@ -430,11 +461,10 @@ function exerciseCard(e, sess){
 
   // en-tête + sélecteur d'unité
   const head=document.createElement("div"); head.className="ex-head";
-  const lbApprox = (e.hintKg && unit==="lb") ? (" (≈ "+lbFromKg(e.hintKg)+" lb)") : "";
   head.innerHTML=`<div>
       ${e.ss?`<span class="ss-tag">${e.ss}</span><br>`:""}
       <div class="ex-name">${e.name}</div>
-      <div class="ex-target">Objectif : ${e.sets} × ${e.reps} · conseillé : ${e.hint}${lbApprox} · repos ${e.rest}</div>
+      <div class="ex-target">Objectif : ${e.sets} série${e.sets>1?"s":""} de ${frReps(e.reps)} · conseillé : ${conseilOf(e,unit)} · repos ${e.rest}</div>
     </div>`;
   card.appendChild(head);
   {
