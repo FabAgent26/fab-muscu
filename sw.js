@@ -2,7 +2,7 @@
    HTML (l'appli elle-même) : réseau d'abord → toujours la dernière version quand il y a du réseau,
    et repli sur le cache hors connexion.
    Autres fichiers (icônes, manifest) : cache d'abord (rapide + hors ligne). */
-const CACHE = "muscu-fanny-v28";
+const CACHE = "muscu-fanny-v29";
 const ASSETS = [
   "./",
   "./index.html",

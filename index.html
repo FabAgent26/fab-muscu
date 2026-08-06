@@ -141,7 +141,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION="2.7";
+const APP_VERSION="2.8";
 /* ================= Programme (fichier du coach) =================
    unit = unité par défaut de la machine : "kg" ou "lb". bw = poids de corps.
    hintKg = charge conseillée en kg (pour affichage + conversion lb). */
@@ -195,6 +195,7 @@ const TABS = [{key:"HOME", label:"Accueil", home:true}]
     {key:"POIDS",   label:"Poids",   poids:true},
     {key:"MENS",    label:"Mensurations", mens:true},
     {key:"JOURNAL", label:"Journal", journal:true},
+    {key:"COACH",   label:"Coach",   coach:true},
   ])
   .concat(PROGRAM);
 
@@ -254,6 +255,29 @@ function loadUnits(){ try{ return JSON.parse(localStorage.getItem(UNITS_KEY))||{
 function saveUnits(){ localStorage.setItem(UNITS_KEY, JSON.stringify(UNITS)); }
 let UNITS=loadUnits();
 function unitOf(exId){ return UNITS[exId] || defUnit(exId); }
+
+/* Objectifs & remarques définis par le coach (par exercice). Priment sur les valeurs par défaut. */
+const COACH_KEY="muscu_fanny_coach_v1";
+function loadCoach(){ try{ return JSON.parse(localStorage.getItem(COACH_KEY))||{}; }catch(e){ return {}; } }
+function saveCoach(){ localStorage.setItem(COACH_KEY, JSON.stringify(COACH)); }
+let COACH=loadCoach();
+function setCoach(id, field, val){
+  if(!COACH[id]) COACH[id]={};
+  if(val==null||val==="") delete COACH[id][field]; else COACH[id][field]=val;
+  if(!Object.keys(COACH[id]).length) delete COACH[id];
+  saveCoach();
+}
+/* Fusionne un exercice du programme avec les réglages du coach. */
+function effEx(e){
+  const c=COACH[e.id]; if(!c) return e;
+  const o=Object.assign({},e);
+  if(c.sets!=null && c.sets!=="") o.sets=c.sets;
+  if(c.reps!=null && c.reps!=="") o.reps=c.reps;
+  if(c.rest) o.rest=c.rest;
+  if(c.hint){ o.hint=c.hint; o.hintKg=null; }
+  o.coachNote=c.note||"";
+  return o;
+}
 /* kg et lb sont comparables (converties en kg) ; plaq et pdc sont des familles à part. */
 function unitFamily(u){ u=u||"kg"; return (u==="kg"||u==="lb") ? "kg" : u; }
 /* Un record ne compare QUE les séances enregistrées dans l'unité actuelle de l'exo.
@@ -440,6 +464,7 @@ function renderSession(){
   if(t.poids){ renderPoids(); return; }
   if(t.mens){ renderMens(); return; }
   if(t.bilan){ renderBilan(); return; }
+  if(t.coach){ renderCoach(); return; }
   if(t.home){ renderHome(); return; }
   document.getElementById("subtitle").textContent=t.label+" - "+t.focus;
   mainEl.innerHTML="";
@@ -453,7 +478,8 @@ function renderSession(){
   mainEl.appendChild(hint);
 }
 
-function exerciseCard(e, sess){
+function exerciseCard(e0, sess){
+  const e=effEx(e0);
   const card=document.createElement("div"); card.className="card";
   const unit=unitOf(e.id);
   const todayE=todayEntryOf(e.id, sess);
@@ -481,6 +507,7 @@ function exerciseCard(e, sess){
   }
 
   if(e.cue){ const c=document.createElement("div"); c.className="cue"; c.textContent="Rappel : "+e.cue; card.appendChild(c); }
+  if(e.coachNote){ const cn=document.createElement("div"); cn.className="cue"; cn.style.cssText="background:#fff7e8;color:#7a5d12;border:1px solid #f0dcae"; cn.innerHTML="<b>Remarque du coach :</b> "; cn.appendChild(document.createTextNode(e.coachNote)); card.appendChild(cn); }
 
   // dernière fois + record
   const lastEl=document.createElement("div"); lastEl.className="last";
@@ -603,6 +630,62 @@ function trendArrow(exId){
   if(a.val<b.val) return " <span style='color:#c25'>&#8600;</span>";
   return " <span style='color:var(--muted)'>&#8594;</span>";
 }
+function renderCoach(){
+  document.getElementById("subtitle").textContent="Coach - objectifs de la semaine";
+  mainEl.innerHTML="";
+  const intro=document.createElement("div"); intro.className="warm";
+  intro.innerHTML="<b>Espace coach.</b> Pour chaque exercice : règle l'objectif (poids ou niveau conseillé, séries, répétitions, repos) et ajoute une remarque. Tout s'enregistre tout seul et s'affiche dans les séances de Fanny. Laisse un champ vide pour garder la valeur par défaut (affichée en gris).";
+  mainEl.appendChild(intro);
+
+  // liste des exercices uniques, dans l'ordre du programme, avec les séances où ils apparaissent
+  const seen=new Set();
+  PROGRAM.forEach(s=> s.ex.forEach(e=>{
+    if(seen.has(e.id)) return; seen.add(e.id);
+    const sessions=PROGRAM.filter(x=>x.ex.some(y=>y.id===e.id)).map(x=>x.label).join(" · ");
+    const c=COACH[e.id]||{};
+    const unitLabel = e.unit==="plaq"?"niveau (plaquettes)":(e.unit==="pdc"?"poids du corps":"kg");
+
+    const card=document.createElement("div"); card.className="card";
+    const h=document.createElement("div");
+    h.innerHTML=`<div class="ex-name">${e.name}</div><div class="ex-target">${sessions} · unité : ${unitLabel}</div>`;
+    card.appendChild(h);
+
+    const grid=document.createElement("div"); grid.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px";
+    function field(label, cur, def, save, inputmode){
+      const w=document.createElement("div");
+      const lab=document.createElement("label"); lab.textContent=label; lab.style.cssText="font-size:12px;color:var(--muted);display:block;margin-bottom:3px";
+      const inp=document.createElement("input"); inp.type="text"; if(inputmode) inp.inputMode=inputmode;
+      inp.value=(cur==null?"":String(cur)); inp.placeholder=(def==null?"":String(def));
+      inp.style.cssText="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;color:var(--ink);background:#fff;box-sizing:border-box";
+      inp.onchange=()=>{ save(inp.value.trim()); };
+      w.appendChild(lab); w.appendChild(inp); return w;
+    }
+    grid.appendChild(field("Séries", c.sets, e.sets, v=> setCoach(e.id,"sets", v===""?null:(Number(v)||null)), "numeric"));
+    grid.appendChild(field("Répétitions", c.reps, e.reps, v=> setCoach(e.id,"reps", v||null)));
+    grid.appendChild(field("Poids / niveau conseillé", c.hint, (e.hint||""), v=> setCoach(e.id,"hint", v||null)));
+    grid.appendChild(field("Repos", c.rest, e.rest, v=> setCoach(e.id,"rest", v||null)));
+    card.appendChild(grid);
+
+    const rlab=document.createElement("label"); rlab.textContent="Remarque du coach"; rlab.style.cssText="font-size:12px;color:var(--muted);display:block;margin:12px 0 3px";
+    const ta=document.createElement("textarea"); ta.value=c.note||""; ta.placeholder="Ex : gaine bien le dos, monte le poids si les 8 reps passent facilement...";
+    ta.style.cssText="width:100%;min-height:60px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;color:var(--ink);background:#fff;box-sizing:border-box;font-family:inherit";
+    ta.oninput=()=>{ setCoach(e.id,"note", ta.value.trim()||null); };
+    card.appendChild(rlab); card.appendChild(ta);
+
+    if(COACH[e.id]){
+      const rs=document.createElement("button"); rs.className="addset"; rs.style.cssText="color:#c25;margin-top:12px;width:100%";
+      rs.textContent="Réinitialiser cet exercice";
+      rs.onclick=()=>{ if(confirm("Revenir aux valeurs par défaut pour « "+e.name+" » ?")){ delete COACH[e.id]; saveCoach(); toast("Réinitialisé"); renderCoach(); } };
+      card.appendChild(rs);
+    }
+    mainEl.appendChild(card);
+  }));
+
+  const hint=document.createElement("div"); hint.className="hint";
+  hint.innerHTML="Les objectifs saisis ici sont enregistrés sur ce téléphone et s'affichent dans les séances de Fanny.";
+  mainEl.appendChild(hint);
+}
+
 function renderHome(){
   document.getElementById("subtitle").textContent="Programme Cédric";
   mainEl.innerHTML="";
